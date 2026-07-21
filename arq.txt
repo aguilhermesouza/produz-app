@@ -1,0 +1,161 @@
+# BRIEFING DE PRODUTO — Protótipo de alta fidelidade
+
+## PAPEL
+Você é um Product Designer + Front-end sênior especializado em dashboards
+industriais e apps operacionais mobile-first. Sua tarefa é criar um PROTÓTIPO
+INTERATIVO DE ALTA FIDELIDADE (React + Tailwind, single-file artifact),
+navegável, com dados fictícios realistas e estado em memória (useState).
+Priorize usabilidade, clareza visual e ergonomia de uso no chão de fábrica.
+Todo texto de interface deve estar em PORTUGUÊS DO BRASIL.
+
+## CONTEXTO DO NEGÓCIO
+Sistema para medir produtividade em CONFECÇÕES (fábricas de roupas).
+Hoje o controle é feito em quadros de parede preenchidos à mão, de hora em hora.
+O objetivo é digitalizar isso em um app fácil, rápido e intuitivo, acessível
+em celular, tablet e desktop, com visão atualizada a cada hora.
+
+### Usuários
+- ENCARREGADA / CRONOMETRISTA (operacional): anda pela fábrica de hora em hora
+  e registra o total produzido por cada máquina. Precisa de FLUXO ULTRA-RÁPIDO,
+  botões grandes, poucos toques, uso com uma mão, muitas vezes de pé.
+- PROPRIETÁRIO / GESTOR (gerencial): quer visão "na palma da mão", saber se cada
+  empresa baterá a meta do dia, com alertas dos itens em amarelo.
+
+### Glossário (use estes termos na UI)
+- PEÇA: produto final (ex: camiseta). Passa por várias OPERAÇÕES.
+- OPERAÇÃO: etapa da peça (ex: "pregar manga", "fechar lateral", "gola").
+- MÁQUINA  posto de trabalho que executa UMA operação, operado por
+  um FUNCIONÁRIO. Tem uma META individual medida em peças/hora.
+- META: quantidade-alvo de peças por hora (individual da máquina e total do dia).
+- INCIDENTE: evento que derruba a produção (ex: agulha quebrada, manutenção,
+  falta de material, troca de funcionário).
+- FECHAMENTO: total consolidado de uma janela de hora.
+- CELULA: Um conjunto de máquinas com o objetivo de produzir determinada peça
+
+### Janelas de horário (expediente de 1 dia)
+Os fechamentos ocorrem ao final de cada hora, nestes horários:
+08h, 09h, 10h, 11h, 13h, 14h, 15h, 16h, 17h  (intervalo de almoço entre 11h e 13h).
+São 9 janelas. A "hora atual" do protótipo deve se posicionar na ÚLTIMA janela
+fechada (ex: se são 16:30, foco na janela das 16h).
+
+## REGRA DE STATUS / CORES (crítico — aplique em TODA a UI)
+Cada máquina, o total da hora(período) e o total do dia têm um dos 3 status, com semáforo consistente:
+- VERDE  = "No ritmo" — dentro/acima da meta.
+- AMARELO = "Alerta" — se mantiver esse ritmo, NÃO baterá a meta do dia.
+- VERMELHO = "Abaixo" — produziu abaixo da meta na janela.
+Importante: uma hora fraca pode ser compensada por horas fortes; portanto o
+status do DIA considera o acumulado x meta acumulada, não só a última hora.
+Use cores acessíveis + ícone/rótulo textual (não depender só da cor).
+Sugestão: verde #16a34a, amarelo #f59e0b/#d97706, vermelho #dc2626, com fundos
+suaves (tints) para os cards e cor sólida para badges/quadradinhos.
+
+## PLATAFORMA E RESPONSIVIDADE (requisito nº 1)
+Mobile-first e impecável. Deve funcionar lindamente em CELULAR, TABLET e DESKTOP.
+- Celular: layout de coluna única, alvos de toque ≥ 44px, bottom sheet para ações,
+  navegação por bottom nav ou header simples, uso com o polegar.
+- Tablet: aproveitar largura (grid 2–3 colunas), ideal para a encarregada.
+- Desktop: visão panorâmica de dashboard (grids maiores, tabelas, mais densidade).
+Inclua um seletor/toggle no protótipo para alternar a moldura entre
+Celular / Tablet / Desktop, demonstrando a responsividade.
+Direção visual: você decide, seguindo boas práticas — clean, alto contraste,
+legível à distância e sob luz forte de galpão. Priorize clareza sobre enfeite.
+
+## TELAS E NAVEGAÇÃO (prototipar as 7, todas navegáveis entre si)
+
+### 1) Lista de Empresas
+- Cards das confecções cadastradas. Cada card mostra: nome/logo, status geral do
+  dia (semáforo), % da meta atingida até agora, total de peças x meta do dia,
+  nº de máquinas ativas e um mini-indicador de quantas estão em amarelo/vermelho.
+- Busca e ordenação (por status, por nome). Toque no card → Tela 2.
+
+### 2) Dashboard da Empresa (após seleção)
+- TOPO: painel da meta do dia — total de peças (realizado x meta) com barra/anel
+  de progresso e status geral.
+- TIMELINE DE HORÁRIOS: uma fileira horizontal de "quadradinhos" coloridos, um por
+  janela (08h…17h), cada um com o total produzido naquela hora e cor de status.
+  Foco automático na última janela fechada; janelas futuras aparecem esmaecidas.
+  Scroll horizontal suave no celular.
+- Card da PEÇA em produção: foto (use placeholder de imagem), nome e descrição
+  resumida da peça. Se a empresa produz mais de uma peça simultaneamente
+  (ex: 20 máquinas na peça A, 30 na peça B, com metas diferentes), mostrar as
+  peças em abas ou cards separados, cada uma com sua meta e progresso.
+- Ao TOCAR em um horário da timeline → Tela 3 (mapa daquela janela).
+- Botão de ação primário para a encarregada: "Registrar produção" → Tela 4.
+
+### 3) Mapa de Máquinas de um Horário
+- Grid de "quadradinhos" = máquinas, coloridos por status individual NAQUELE
+  fechamento. Cada quadradinho: nº/nome da máquina, operação, funcionário,
+  realizado x meta, e um marcador se houve incidente.
+- Cabeçalho: horário selecionado (com navegação ‹ › entre janelas) + total
+  fechado da janela e contagem por status.
+- Filtros: por peça, por operação, por status. Alternar entre visão "grid
+  compacto" (muitos quadradinhos) e "lista detalhada".
+- Deve escalar bem para ~50 máquinas. Toque em uma máquina → detalhe/registro (T4).
+
+### 4) Registro Rápido de Produção (fluxo da encarregada) — FLUXO MAIS IMPORTANTE
+- Otimizado para velocidade: a encarregada percorre as máquinas e digita o total.
+- Modo "percorrer a fábrica": mostra uma máquina por vez com nome, operação,
+  funcionário, meta da hora e um teclado numérico grande / stepper para o total.
+  Botões grandes "Salvar e próxima" / "Pular". Barra de progresso "12/50 máquinas".
+- Feedback instantâneo: ao digitar, o status (verde/amarelo/vermelho) recalcula e
+  aparece na hora.
+- Atalho para registrar incidente na mesma máquina (abre Tela 5 em bottom sheet).
+- Também oferecer um modo "lista/tabela" para quem prefere preencher tudo de uma vez.
+- Confirmação visual de salvo (toast) e possibilidade de corrigir um valor.
+
+### 5) Registro de Incidente
+- Bottom sheet / modal. Seleção rápida do TIPO de incidente por chips/ícones:
+  agulha quebrada, manutenção, falta de material, ajuste de máquina, troca de
+  funcionário, outro (campo livre). Duração/impacto opcional e observação.
+- Máquinas com incidente recebem um selo visível no mapa (T3) e no dashboard.
+- Histórico de incidentes do dia por máquina.
+
+### 6) Configuração de Máquinas/Células e Vínculo de Funcionários
+- Esta é uma área GRANDE e a facilidade de uso é o foco principal — capriche na UX.
+- Listagem/gestão de máquinas: adicionar, editar, remover, ativar/desativar.
+- Vincular cada máquina a: uma OPERAÇÃO, uma PEÇA e um FUNCIONÁRIO, definindo a
+  META por hora. Suportar edição em massa (ex: selecionar 30 máquinas e atribuir
+  a mesma peça/operação/meta de uma vez) para o cenário de 50 máquinas em 2 peças.
+- Busca, filtros e agrupamento (por peça, por operação, por status de vínculo).
+- Deixar claro visualmente quais máquinas ainda estão SEM funcionário ou SEM meta.
+- Fluxo de "adicionar/remover máquina naquele dia ou horário" (a linha do dia pode
+  mudar): permitir incluir ou tirar máquinas da operação do dia sem apagar histórico.
+
+### 7) Troca / Substituição de Funcionário
+- Fluxo rápido para trocar o funcionário vinculado a uma máquina durante o dia
+  (ex: alguém saiu, entrou outro). Buscar/selecionar novo funcionário, registrar
+  horário da troca, manter o histórico de quem produziu o quê em cada janela.
+- Idealmente gera automaticamente um incidente do tipo "troca de funcionário".
+
+## ALERTAS
+Represente (visualmente, no protótipo) que itens em AMARELO/VERMELHO disparam
+alerta por WhatsApp para o gestor: um indicador/sino de notificações e um card de
+"alertas do dia" listando máquinas/empresas em risco, com botão simulado
+"Notificar via WhatsApp".
+
+## DADOS FICTÍCIOS (realistas, em memória)
+- 3–4 confecções (ex: "Confecção Bela Moda", "Malhas São José", "Jeans Prime").
+- Uma empresa com ~50 máquinas divididas em 2 peças com metas diferentes
+  (ex: Peça A "Camiseta Básica" meta 120 pç/h; Peça B "Calça Jeans" meta 45 pç/h).
+- Operações realistas: "pregar manga", "fechar lateral", "pregar gola", "barra",
+  "pesponto", "casear", "pregar botão", etc.
+- Nomes de funcionários brasileiros. Dados de produção por janela coerentes com os
+  status (misture verdes, amarelos e vermelhos; inclua ao menos 1 incidente).
+- Preencher as janelas até a "hora atual" e deixar as futuras vazias.
+
+## REQUISITOS TÉCNICOS
+- React + Tailwind em UM único artifact executável (sem libs externas de UI pesadas;
+  pode usar ícones inline/emoji ou SVG simples). Estado em useState; navegação
+  entre telas simulada por estado (sem router externo).
+- Componentização limpa e reutilizável (Card, StatusBadge, HourCell, MachineTile,
+  BottomSheet, NumericPad, etc.).
+- Acessibilidade: contraste AA, foco visível, rótulos textuais além da cor,
+  alvos de toque generosos.
+- Microinterações sóbrias (transições suaves, toasts), sem exageros.
+- Código organizado e comentado nos pontos-chave.
+
+## ENTREGÁVEL
+Um protótipo navegável começando pela Tela 1, com o toggle de moldura
+Celular/Tablet/Desktop visível, permitindo percorrer as 7 telas com dados
+fictícios já preenchidos. Foque em transmitir a experiência real de uso:
+rápido para a encarregada registrar, e claro para o gestor decidir.
