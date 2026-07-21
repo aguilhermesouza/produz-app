@@ -49,6 +49,13 @@ export const PECAS: Peca[] = [
     fotoUrl:
       'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=60',
     metaHora: 120,
+    etapa: 'producao',
+    etapas: {
+      aprovada: { planejado: '2026-07-01', realizado: '2026-07-01' },
+      medicao:  { planejado: '2026-07-06', realizado: '2026-07-05' },
+      producao: { planejado: '2026-07-11' },
+      entrega:  { planejado: '2026-07-28' },
+    },
   },
   {
     id: 'pc-jeans',
@@ -57,6 +64,13 @@ export const PECAS: Peca[] = [
     fotoUrl:
       'https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=400&q=60',
     metaHora: 45,
+    etapa: 'producao',
+    etapas: {
+      aprovada: { planejado: '2026-06-20', realizado: '2026-06-21' },
+      medicao:  { planejado: '2026-06-27', realizado: '2026-06-30' },
+      producao: { planejado: '2026-07-07' },
+      entrega:  { planejado: '2026-07-31' },
+    },
   },
   {
     id: 'pc-bermuda',
@@ -65,6 +79,13 @@ export const PECAS: Peca[] = [
     fotoUrl:
       'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=400&q=60',
     metaHora: 80,
+    etapa: 'entrega',
+    etapas: {
+      aprovada: { planejado: '2026-06-01', realizado: '2026-06-01' },
+      medicao:  { planejado: '2026-06-08', realizado: '2026-06-07' },
+      producao: { planejado: '2026-06-15', realizado: '2026-06-18' },
+      entrega:  { planejado: '2026-07-05' },
+    },
   },
   {
     id: 'pc-vestido',
@@ -73,6 +94,13 @@ export const PECAS: Peca[] = [
     fotoUrl:
       'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=400&q=60',
     metaHora: 60,
+    etapa: 'medicao',
+    etapas: {
+      aprovada: { planejado: '2026-07-10', realizado: '2026-07-10' },
+      medicao:  { planejado: '2026-07-17' },
+      producao: { planejado: '2026-07-24' },
+      entrega:  { planejado: '2026-08-07' },
+    },
   },
   {
     id: 'pc-camisa',
@@ -81,14 +109,96 @@ export const PECAS: Peca[] = [
     fotoUrl:
       'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=60',
     metaHora: 55,
+    etapa: 'producao',
+    etapas: {
+      aprovada: { planejado: '2026-07-02', realizado: '2026-07-03' },
+      medicao:  { planejado: '2026-07-08', realizado: '2026-07-09' },
+      producao: { planejado: '2026-07-14' },
+      entrega:  { planejado: '2026-07-31' },
+    },
+  },
+  {
+    id: 'pc-shorts',
+    nome: 'Shorts Esportivo',
+    descricao: 'Tactel leve, elástico na cintura, bolso lateral com zíper.',
+    fotoUrl:
+      'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=400&q=60',
+    metaHora: 90,
+    etapa: 'aprovada',
+    etapas: {
+      aprovada: { planejado: '2026-07-21' },
+      medicao:  { planejado: '2026-07-28' },
+      producao: { planejado: '2026-08-05' },
+      entrega:  { planejado: '2026-08-20' },
+    },
+  },
+  {
+    id: 'pc-polo',
+    nome: 'Polo Masculina',
+    descricao: 'Piquet 100% algodão, botões de madrepérola, gola nervurada.',
+    fotoUrl:
+      'https://images.unsplash.com/photo-1586790170083-2f9ceadc732d?auto=format&fit=crop&w=400&q=60',
+    metaHora: 70,
+    etapa: 'producao',
+    etapas: {
+      aprovada: { planejado: '2026-06-25', realizado: '2026-06-25' },
+      medicao:  { planejado: '2026-07-01', realizado: '2026-07-02' },
+      producao: { planejado: '2026-07-09' },
+      entrega:  { planejado: '2026-07-28' },
+    },
+  },
+  {
+    id: 'pc-blusa',
+    nome: 'Blusa Feminina',
+    descricao: 'Crepe georgete, manga longa bufante, decote V com botões.',
+    fotoUrl:
+      'https://images.unsplash.com/photo-1564257631407-4deb1f99d992?auto=format&fit=crop&w=400&q=60',
+    metaHora: 100,
+    etapa: 'medicao',
+    etapas: {
+      aprovada: { planejado: '2026-07-12', realizado: '2026-07-13' },
+      medicao:  { planejado: '2026-07-19' },
+      producao: { planejado: '2026-07-26' },
+      entrega:  { planejado: '2026-08-10' },
+    },
+  },
+  {
+    id: 'pc-macacao',
+    nome: 'Macacão Jeans',
+    descricao: 'Denim stonewashed, alças reguláveis, lavagem clara.',
+    fotoUrl:
+      'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=400&q=60',
+    metaHora: 50,
+    etapa: 'entrega',
+    etapas: {
+      aprovada: { planejado: '2026-06-10', realizado: '2026-06-10' },
+      medicao:  { planejado: '2026-06-17', realizado: '2026-06-16' },
+      producao: { planejado: '2026-06-24', realizado: '2026-06-26' },
+      entrega:  { planejado: '2026-07-10' },
+    },
+  },
+  {
+    id: 'pc-jaleco',
+    nome: 'Jaleco Profissional',
+    descricao: 'Brim 100% algodão, 4 bolsos externos, punho em elástico.',
+    fotoUrl:
+      'https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&w=400&q=60',
+    metaHora: 65,
+    etapa: 'aprovada',
+    etapas: {
+      aprovada: { planejado: '2026-07-21' },
+      medicao:  { planejado: '2026-07-29' },
+      producao: { planejado: '2026-08-06' },
+      entrega:  { planejado: '2026-08-25' },
+    },
   },
 ]
 
 export const EMPRESAS: Empresa[] = [
-  { id: 'emp-bela', nome: 'Confecção Bela Moda', cidade: 'Cianorte · PR', cor: '#404040' },
-  { id: 'emp-saojose', nome: 'Malhas São José', cidade: 'Maringá · PR', cor: '#525252' },
-  { id: 'emp-jeansprime', nome: 'Jeans Prime', cidade: 'Toritama · PE', cor: '#262626' },
-  { id: 'emp-flor', nome: 'Moda Íntima Flor', cidade: 'Nova Friburgo · RJ', cor: '#737373' },
+  { id: 'emp-bela', nome: 'Confecção Descoberto - Matriz', cidade: 'Descoberto · MG', cor: '#404040' },
+  { id: 'emp-saojose', nome: 'Confecção Descoberto - Filial 1', cidade: 'Descoberto · MG', cor: '#525252' },
+  { id: 'emp-jeansprime', nome: 'Confecção Argirita', cidade: 'Argirita · MG', cor: '#262626' },
+  { id: 'emp-flor', nome: 'Confecção Itamarati', cidade: 'Itamarati · MG', cor: '#737373' },
 ]
 
 const NOMES = [
@@ -182,12 +292,37 @@ const CELULAS: Record<string, CelulaDef[]> = {
       operacoes: ['op-bolso', 'op-ziper', 'op-cos', 'op-lateral', 'op-barra', 'op-pesponto', 'op-botao'],
       repeticoes: 3,
     },
+    {
+      pecaId: 'pc-shorts',
+      operacoes: ['op-overlock', 'op-cos', 'op-lateral', 'op-bolso', 'op-barra'],
+      repeticoes: 3,
+    },
+    {
+      pecaId: 'pc-blusa',
+      operacoes: ['op-overlock', 'op-gola', 'op-manga', 'op-lateral', 'op-acabamento'],
+      repeticoes: 3,
+    },
+    {
+      pecaId: 'pc-camisa',
+      operacoes: ['op-gola', 'op-manga', 'op-botao', 'op-barra'],
+      repeticoes: 2,
+    },
   ],
   'emp-saojose': [
     {
       pecaId: 'pc-bermuda',
       operacoes: ['op-overlock', 'op-cos', 'op-lateral', 'op-bolso', 'op-barra', 'op-acabamento'],
       repeticoes: 3,
+    },
+    {
+      pecaId: 'pc-polo',
+      operacoes: ['op-gola', 'op-manga', 'op-casear', 'op-botao', 'op-barra'],
+      repeticoes: 2,
+    },
+    {
+      pecaId: 'pc-camiseta',
+      operacoes: ['op-overlock', 'op-gola', 'op-manga', 'op-lateral'],
+      repeticoes: 2,
     },
   ],
   'emp-jeansprime': [
@@ -201,6 +336,11 @@ const CELULAS: Record<string, CelulaDef[]> = {
       operacoes: ['op-gola', 'op-manga', 'op-casear', 'op-botao', 'op-barra', 'op-acabamento'],
       repeticoes: 2,
     },
+    {
+      pecaId: 'pc-polo',
+      operacoes: ['op-gola', 'op-manga', 'op-casear', 'op-botao'],
+      repeticoes: 2,
+    },
   ],
   'emp-flor': [
     {
@@ -208,7 +348,30 @@ const CELULAS: Record<string, CelulaDef[]> = {
       operacoes: ['op-overlock', 'op-lateral', 'op-ziper', 'op-barra', 'op-acabamento', 'op-gola'],
       repeticoes: 2,
     },
+    {
+      pecaId: 'pc-macacao',
+      operacoes: ['op-overlock', 'op-lateral', 'op-ziper', 'op-cos', 'op-acabamento'],
+      repeticoes: 2,
+    },
+    {
+      pecaId: 'pc-jaleco',
+      operacoes: ['op-overlock', 'op-bolso', 'op-casear', 'op-botao', 'op-barra'],
+      repeticoes: 2,
+    },
   ],
+}
+
+// Fator de variação por hora: cria picos e quedas visíveis na timeline.
+// Índices: [08h, 09h, 10h, 11h, 13h, 14h, 15h, 16h, 17h]
+const HORA_FATORES = [1.08, 0.85, 1.14, 0.80, 1.12, 0.88, 0.76, 1.10, 0.93]
+
+// Fator base por empresa: controla o status geral no dashboard.
+// verde ≥ 1.0 | amarelo 0.85–0.99 | vermelho < 0.85
+const EMPRESA_FATOR: Record<string, number> = {
+  'emp-bela':       1.10, // verde
+  'emp-saojose':    1.07, // verde
+  'emp-jeansprime': 0.93, // amarelo
+  'emp-flor':       0.76, // vermelho
 }
 
 // Fator de desempenho por máquina (uns performam melhor que outros).
@@ -241,6 +404,11 @@ const META_OP: MetaHoraOp = {
   'pc-bermuda': 88,
   'pc-vestido': 66,
   'pc-camisa': 60,
+  'pc-shorts': 98,
+  'pc-polo': 76,
+  'pc-blusa': 110,
+  'pc-macacao': 55,
+  'pc-jaleco': 72,
 }
 
 for (const empresa of EMPRESAS) {
@@ -270,12 +438,12 @@ for (const empresa of EMPRESAS) {
         MAQUINAS.push(maquina)
 
         // Gera produção por janela até a hora atual.
-        const fator = fatorDesempenho()
+        const fator = fatorDesempenho() * (EMPRESA_FATOR[empresa.id] ?? 1)
         const valores: (number | null)[] = new Array(TOTAL_JANELAS).fill(null)
         if (funcionarioId) {
           for (let h = 0; h <= HORA_ATUAL_INDEX; h++) {
-            const ruido = rnd(0.85, 1.15)
-            valores[h] = Math.max(0, Math.round(metaHora * fator * ruido))
+            const ruido = rnd(0.92, 1.08)
+            valores[h] = Math.max(0, Math.round(metaHora * fator * (HORA_FATORES[h] ?? 1) * ruido))
           }
         }
         PRODUCAO[id] = valores

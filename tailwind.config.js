@@ -22,7 +22,7 @@ export default {
         bad: '#dc2626',
       },
       fontFamily: {
-        sans: ['Averta', 'Averta Std', 'system-ui', 'sans-serif'],
+        sans: ['Nunito', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         card: '0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08)',

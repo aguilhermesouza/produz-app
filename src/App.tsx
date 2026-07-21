@@ -8,6 +8,7 @@ import { MapaHorarioScreen } from './screens/MapaHorarioScreen'
 import { RegistroScreen } from './screens/RegistroScreen'
 import { ConfigMaquinasScreen } from './screens/ConfigMaquinasScreen'
 import { AlertasScreen } from './screens/AlertasScreen'
+import { PecaDetalheScreen } from './screens/PecaDetalheScreen'
 
 function Router() {
   const { current } = useNav()
@@ -37,6 +38,8 @@ function Router() {
       return <ConfigMaquinasScreen empresaId={current.empresaId} />
     case 'alertas':
       return <AlertasScreen empresaId={current.empresaId} />
+    case 'peca':
+      return <PecaDetalheScreen pecaId={current.pecaId} />
   }
 }
 

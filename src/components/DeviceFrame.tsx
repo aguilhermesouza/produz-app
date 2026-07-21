@@ -51,7 +51,7 @@ export function DeviceFrame({ children }: { children: ReactNode }) {
 
   return (
     <DeviceContext.Provider value={ctx}>
-      <div className="relative flex h-full w-full flex-col overflow-hidden bg-brand-50">
+      <div className="relative flex h-full w-full flex-col overflow-hidden bg-brand-100">
         {children}
       </div>
     </DeviceContext.Provider>

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { AlertTriangle, ClipboardList, Settings2, Bell } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { AlertTriangle, ClipboardList, Settings2, Bell, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../nav'
 import { useDevice } from '../components/DeviceFrame'
@@ -7,16 +7,42 @@ import { useEmpresaResumo } from '../hooks/useEmpresa'
 import { TopBar } from '../components/TopBar'
 import { HourCell } from '../components/HourCell'
 import { Card, ProgressBar, ProgressRing, StatusBadge } from '../components/ui'
-import { HORAS, HORA_ATUAL_INDEX, STATUS_TOKENS, pct } from '../lib/status'
+import { HORAS, getHoraAtualIndex, STATUS_TOKENS, pct } from '../lib/status'
 import type { DiaAgg } from '../lib/aggregates'
 import { cx, nInt } from '../lib/format'
+
+const DIAS_ABREV = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+const MESES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+]
+
+function isSameDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
+}
 
 export function DashboardScreen({ empresaId }: { empresaId: string }) {
   const { empresas } = useStore()
   const { go } = useNav()
   const { wide } = useDevice()
   const empresa = empresas.find((e) => e.id === empresaId)!
-  const resumo = useEmpresaResumo(empresaId)
+
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    return d
+  })
+  const horaAtual = useMemo(() => {
+    const hoje = new Date()
+    hoje.setHours(0, 0, 0, 0)
+    return isSameDay(selectedDate, hoje) ? getHoraAtualIndex() : HORAS.length - 1
+  }, [selectedDate])
+
+  const resumo = useEmpresaResumo(empresaId, horaAtual)
   const [pecaSel, setPecaSel] = useState<string | null>(null)
 
   const aggAtual: DiaAgg =
@@ -61,6 +87,8 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
         }
       />
 
+      <DateStrip date={selectedDate} onChange={(d) => { setSelectedDate(d); setPecaSel(null) }} />
+
       <div className="thin-scroll flex-1 overflow-y-auto px-4 pb-28 pt-4">
         {/* Painel da meta do dia */}
         <Card className={cx('mb-4 border-2 p-4', t.borda)}>
@@ -100,7 +128,7 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
         )}
 
         {/* Timeline de horários */}
-        <p className="mb-2 text-sm font-bold uppercase tracking-wide text-brand-900/70">
+        <p className="mb-2 text-sm font-bold uppercase tracking-wide text-brand-500">
           Fechamentos por hora
         </p>
         <div className="no-scrollbar -mx-1 mb-2 flex gap-2 overflow-x-auto px-1 pb-2">
@@ -109,8 +137,8 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
               key={h.index}
               hora={h}
               label={HORAS[h.index]}
-              atual={h.index === HORA_ATUAL_INDEX}
-              selecionado={h.index === HORA_ATUAL_INDEX}
+              atual={h.index === horaAtual}
+              selecionado={h.index === horaAtual}
               onClick={() => abrirHora(h.index)}
             />
           ))}
@@ -120,7 +148,7 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
         </p>
 
         {/* Peças em produção */}
-        <p className="mb-2 text-sm font-bold uppercase tracking-wide text-brand-900/70">
+        <p className="mb-2 text-sm font-bold uppercase tracking-wide text-brand-500">
           {multiPeca ? 'Peças em produção' : 'Peça em produção'}
         </p>
         <div className={cx('grid gap-3', wide && multiPeca ? 'grid-cols-2' : 'grid-cols-1')}>
@@ -178,13 +206,121 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
         <button
           type="button"
           onClick={() =>
-            go({ name: 'registro', empresaId, hourIndex: HORA_ATUAL_INDEX, pecaId: pecaSel ?? undefined })
+            go({ name: 'registro', empresaId, hourIndex: horaAtual, pecaId: pecaSel ?? undefined })
           }
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 py-3.5 text-base font-bold text-white shadow-lift transition active:scale-95"
         >
           <ClipboardList size={20} />
-          Registrar produção · {HORAS[HORA_ATUAL_INDEX]}
+          Registrar produção · {horaAtual >= 0 ? HORAS[horaAtual] : '–'}
         </button>
+      </div>
+    </div>
+  )
+}
+
+function DateStrip({ date, onChange }: { date: Date; onChange: (d: Date) => void }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  const hoje = useMemo(() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [])
+
+  const [viewMonth, setViewMonth] = useState({
+    year: date.getFullYear(),
+    month: date.getMonth(),
+  })
+
+  const isCurrentMonth =
+    viewMonth.year === hoje.getFullYear() && viewMonth.month === hoje.getMonth()
+
+  const dias = useMemo(() => {
+    const total = new Date(viewMonth.year, viewMonth.month + 1, 0).getDate()
+    return Array.from({ length: total }, (_, i) => new Date(viewMonth.year, viewMonth.month, i + 1))
+  }, [viewMonth])
+
+  // Scroll para o dia selecionado (ou hoje) sempre que o mês muda
+  useEffect(() => {
+    const container = scrollRef.current
+    if (!container) return
+    const target =
+      container.querySelector<HTMLElement>('[data-sel="true"]') ??
+      container.querySelector<HTMLElement>('[data-today="true"]')
+    if (target) target.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' })
+    else container.scrollLeft = 0
+  }, [viewMonth])
+
+  const prevMonth = () =>
+    setViewMonth(({ year, month }) =>
+      month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 },
+    )
+
+  const nextMonth = () =>
+    setViewMonth(({ year, month }) =>
+      month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 },
+    )
+
+  return (
+    <div className="border-b border-brand-100 bg-white pb-3 pt-2">
+      {/* Cabeçalho do mês com setas */}
+      <div className="mb-2 flex items-center justify-between px-3">
+        <button
+          type="button"
+          onClick={prevMonth}
+          className="flex h-8 w-8 items-center justify-center rounded-xl text-brand-500 transition hover:bg-brand-100 active:scale-95"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-brand-700">
+          {MESES[viewMonth.month]} {viewMonth.year}
+        </p>
+        <button
+          type="button"
+          onClick={nextMonth}
+          disabled={isCurrentMonth}
+          className="flex h-8 w-8 items-center justify-center rounded-xl text-brand-500 transition hover:bg-brand-100 active:scale-95 disabled:opacity-25"
+        >
+          <ChevronRight size={18} />
+        </button>
+      </div>
+
+      {/* Faixa de dias */}
+      <div ref={scrollRef} className="no-scrollbar flex gap-1 overflow-x-auto px-4">
+        {dias.map((d, i) => {
+          const isToday = isSameDay(d, hoje)
+          const isSelected = isSameDay(d, date)
+          return (
+            <button
+              key={i}
+              type="button"
+              data-sel={isSelected ? 'true' : undefined}
+              data-today={isToday && !isSelected ? 'true' : undefined}
+              onClick={() => onChange(d)}
+              className={cx(
+                'flex shrink-0 flex-col items-center gap-1 rounded-2xl px-2.5 py-2 transition active:scale-95',
+                isSelected
+                  ? 'bg-brand-900 text-white'
+                  : isToday
+                  ? 'bg-brand-100 text-brand-900'
+                  : 'text-brand-400 hover:bg-brand-50',
+              )}
+            >
+              <span
+                className={cx(
+                  'text-[10px] font-medium leading-none',
+                  isSelected ? 'text-white/60' : '',
+                )}
+              >
+                {DIAS_ABREV[d.getDay()]}
+              </span>
+              <span className="text-sm font-extrabold leading-none">{d.getDate()}</span>
+              {isToday && !isSelected && (
+                <span className="h-1 w-1 rounded-full bg-brand-600" />
+              )}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

@@ -24,24 +24,29 @@ export function HourCell({
       onClick={onClick}
       disabled={hora.futura}
       className={cx(
-        'relative flex min-w-[64px] flex-col items-center gap-1 rounded-xl border-2 px-2 py-2.5 transition active:scale-95',
+        'relative flex min-w-[72px] flex-col items-center gap-0.5 rounded-xl border-2 px-2 py-2.5 transition active:scale-95',
         hora.futura
           ? 'border-dashed border-brand-200 bg-brand-50/50 text-brand-300'
           : cx('bg-white text-brand-950', t?.borda),
         selecionado && !hora.futura && 'ring-2 ring-brand-500 ring-offset-1',
       )}
     >
-      <span className="text-[11px] font-semibold text-brand-500">{label}</span>
+      <span className="text-[11px] font-semibold text-brand-400">{label}</span>
       {hora.futura ? (
-        <span className="text-lg font-bold text-brand-300">–</span>
+        <span className="text-base font-bold text-brand-300">–</span>
       ) : (
-        <span className={cx('text-lg font-extrabold', t?.corTexto)}>
-          {hora.realizado !== null ? nInt(hora.realizado) : '–'}
-        </span>
+        <>
+          <span className={cx('text-base font-extrabold leading-none', t?.corTexto)}>
+            {hora.realizado !== null ? nInt(hora.realizado) : '–'}
+          </span>
+          <span className="text-[10px] font-medium leading-none text-brand-400">
+            / {nInt(hora.meta)}
+          </span>
+        </>
       )}
-      {t && <span className={cx('h-1.5 w-6 rounded-full', t.cor)} />}
+      {t && <span className={cx('mt-0.5 h-1.5 w-6 rounded-full', t.cor)} />}
       {atual && (
-        <span className="absolute -top-1.5 right-1 rounded-full bg-brand-600 px-1.5 text-[9px] font-bold text-white">
+        <span className="absolute -top-1.5 right-1 rounded-full bg-brand-700 px-1.5 text-[9px] font-bold text-white">
           agora
         </span>
       )}

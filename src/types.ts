@@ -13,6 +13,15 @@ export interface Operacao {
   nome: string
 }
 
+export type EtapaPeca = 'aprovada' | 'medicao' | 'producao' | 'entrega'
+
+export interface EtapaInfo {
+  /** Data planejada para início/conclusão da etapa ('YYYY-MM-DD'). */
+  planejado: string
+  /** Data real de conclusão ('YYYY-MM-DD'). Ausente enquanto a etapa não foi concluída. */
+  realizado?: string
+}
+
 export interface Peca {
   id: string
   nome: string
@@ -20,6 +29,10 @@ export interface Peca {
   fotoUrl: string
   /** Meta de peças finalizadas por hora para esta peça/célula. */
   metaHora: number
+  /** Etapa atual no fluxo de produção. */
+  etapa: EtapaPeca
+  /** Datas planejadas e realizadas por etapa. */
+  etapas?: Partial<Record<EtapaPeca, EtapaInfo>>
 }
 
 export interface Maquina {

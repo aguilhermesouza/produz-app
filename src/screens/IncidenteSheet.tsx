@@ -43,7 +43,7 @@ export function IncidenteSheet({
         {operacao(maquina.operacaoId)?.nome} · janela das {HORAS[hourIndex]}
       </p>
 
-      <p className="mb-2 text-sm font-semibold text-brand-900">Tipo do incidente</p>
+      <p className="mb-2 text-sm font-semibold text-brand-600">Tipo do incidente</p>
       <div className="mb-4 grid grid-cols-2 gap-2">
         {TIPOS_INCIDENTE.map(({ id, label, icon: Icon }) => (
           <button
@@ -63,7 +63,7 @@ export function IncidenteSheet({
         ))}
       </div>
 
-      <label className="mb-1 block text-sm font-semibold text-brand-900">
+      <label className="mb-1 block text-sm font-semibold text-brand-600">
         Minutos parado (opcional)
       </label>
       <input
@@ -74,7 +74,7 @@ export function IncidenteSheet({
         className="mb-4 w-full rounded-xl border-2 border-brand-100 px-3 py-2.5 text-sm outline-none focus:border-brand-400"
       />
 
-      <label className="mb-1 block text-sm font-semibold text-brand-900">Observação (opcional)</label>
+      <label className="mb-1 block text-sm font-semibold text-brand-600">Observação (opcional)</label>
       <textarea
         value={obs}
         onChange={(e) => setObs(e.target.value)}

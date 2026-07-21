@@ -456,7 +456,7 @@ function BulkEditSheet({
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="mb-3 block">
-      <span className="mb-1 block text-sm font-semibold text-brand-900">{label}</span>
+      <span className="mb-1 block text-sm font-semibold text-brand-600">{label}</span>
       {children}
     </label>
   )
@@ -475,7 +475,7 @@ function ToggleCampo({
 }) {
   return (
     <div className={cx('mb-3 rounded-xl border-2 p-3', ativo ? 'border-brand-400 bg-brand-50/50' : 'border-brand-100')}>
-      <button type="button" onClick={onToggle} className="mb-2 flex w-full items-center gap-2 text-sm font-semibold text-brand-900">
+      <button type="button" onClick={onToggle} className="mb-2 flex w-full items-center gap-2 text-sm font-semibold text-brand-600">
         {ativo ? <CheckSquare size={18} className="text-brand-600" /> : <Square size={18} className="text-brand-300" />}
         {label}
       </button>

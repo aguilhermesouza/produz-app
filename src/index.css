@@ -1,3 +1,8 @@
+@import '@fontsource/nunito/400.css';
+@import '@fontsource/nunito/600.css';
+@import '@fontsource/nunito/700.css';
+@import '@fontsource/nunito/800.css';
+@import '@fontsource/nunito/900.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -18,8 +23,8 @@ body,
 
 body {
   margin: 0;
-  font-family: 'Averta', 'Averta Std', system-ui, sans-serif;
-  background: #fafafa;
+  font-family: 'Nunito', system-ui, sans-serif;
+  background: #f5f5f5;
   color: #171717;
   -webkit-font-smoothing: antialiased;
 }

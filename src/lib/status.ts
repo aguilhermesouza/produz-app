@@ -3,18 +3,36 @@ import type { StatusNivel } from '../types'
 /** Janelas de hora do expediente (fechamento ao final de cada hora). */
 export const HORAS = ['08h', '09h', '10h', '11h', '13h', '14h', '15h', '16h', '17h']
 
-/** Índice da última janela fechada no protótipo (16h). "Agora" = 16:30. */
+/** Hora de início (real) de cada janela, para cálculo dinâmico. */
+const HORA_INICIO = [8, 9, 10, 11, 13, 14, 15, 16, 17]
+
+/** Índice fixo usado apenas para geração de mock (16h fechado). */
 export const HORA_ATUAL_INDEX = 7
+
+/**
+ * Retorna o índice da última janela **fechada** com base na hora real do sistema.
+ * Ex.: 11h → index 2 (10h é o último fechamento concluído).
+ * Retorna -1 antes do expediente (< 09h).
+ */
+export function getHoraAtualIndex(): number {
+  const h = new Date().getHours()
+  let last = -1
+  for (let i = 0; i < HORA_INICIO.length; i++) {
+    if (h > HORA_INICIO[i]) last = i
+    else break
+  }
+  return last
+}
 
 export const TOTAL_JANELAS = HORAS.length
 
 /**
  * Converte uma razão realizado/meta em nível de status.
- * >= 1.0 no ritmo (verde) | >= 0.9 alerta (amarelo) | abaixo (vermelho)
+ * >= 1.0 atingiu a meta (verde) | >= 0.85 alerta (amarelo) | abaixo (vermelho)
  */
 export function statusPorRazao(razao: number): StatusNivel {
   if (razao >= 1) return 'ok'
-  if (razao >= 0.9) return 'warn'
+  if (razao >= 0.85) return 'warn'
   return 'bad'
 }
 

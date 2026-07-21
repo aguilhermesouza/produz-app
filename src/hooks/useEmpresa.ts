@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useStore } from '../store'
 import { agregarPeca, combinarPecas, type DiaAgg } from '../lib/aggregates'
 import type { Peca } from '../types'
-import { HORA_ATUAL_INDEX, statusJanela } from '../lib/status'
+import { getHoraAtualIndex, statusJanela } from '../lib/status'
 
 export interface PecaResumo {
   peca: Peca
@@ -19,7 +19,7 @@ export interface EmpresaResumo {
   qtdAmarelas: number
 }
 
-export function useEmpresaResumo(empresaId: string): EmpresaResumo {
+export function useEmpresaResumo(empresaId: string, ateIndex = getHoraAtualIndex()): EmpresaResumo {
   const { maquinasDaEmpresa, pecasDaEmpresa, producao } = useStore()
 
   return useMemo(() => {
@@ -30,7 +30,7 @@ export function useEmpresaResumo(empresaId: string): EmpresaResumo {
       const maquinasPeca = maquinas.filter((m) => m.pecaId === p.id)
       return {
         peca: p,
-        agg: agregarPeca(maquinasPeca, producao, p.metaHora),
+        agg: agregarPeca(maquinasPeca, producao, p.metaHora, ateIndex),
         qtdMaquinas: maquinasPeca.length,
       }
     })
@@ -40,7 +40,7 @@ export function useEmpresaResumo(empresaId: string): EmpresaResumo {
     let qtdAmarelas = 0
     let qtdVermelhas = 0
     for (const m of maquinas) {
-      const nivel = statusJanela(producao[m.id]?.[HORA_ATUAL_INDEX] ?? null, m.metaHora)
+      const nivel = statusJanela(producao[m.id]?.[ateIndex] ?? null, m.metaHora)
       if (nivel === 'warn') qtdAmarelas += 1
       if (nivel === 'bad') qtdVermelhas += 1
     }
@@ -53,5 +53,5 @@ export function useEmpresaResumo(empresaId: string): EmpresaResumo {
       qtdVermelhas,
       qtdAmarelas,
     }
-  }, [empresaId, maquinasDaEmpresa, pecasDaEmpresa, producao])
+  }, [empresaId, maquinasDaEmpresa, pecasDaEmpresa, producao, ateIndex])
 }

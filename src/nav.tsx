@@ -7,6 +7,7 @@ export type Screen =
   | { name: 'registro'; empresaId: string; hourIndex: number; pecaId?: string; maquinaId?: string }
   | { name: 'config'; empresaId: string }
   | { name: 'alertas'; empresaId?: string }
+  | { name: 'peca'; pecaId: string }
 
 interface NavValue {
   current: Screen
