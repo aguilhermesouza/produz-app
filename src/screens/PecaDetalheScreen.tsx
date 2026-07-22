@@ -9,15 +9,14 @@ import {
   Scissors,
   Truck,
   Wrench,
-  TrendingUp,
   Clock,
 } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../nav'
 import { useDevice } from '../components/DeviceFrame'
 import { agregarPeca } from '../lib/aggregates'
-import { STATUS_TOKENS, getHoraAtualIndex, pct } from '../lib/status'
-import { Card, ProgressBar, ProgressRing, StatusBadge } from '../components/ui'
+import { STATUS_TOKENS, getHoraAtualIndex } from '../lib/status'
+import { Card } from '../components/ui'
 import { BottomSheet } from '../components/BottomSheet'
 import { NumericPad } from '../components/NumericPad'
 import { cx, nInt } from '../lib/format'

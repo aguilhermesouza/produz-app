@@ -1,5 +1,5 @@
 import type { Maquina, ProducaoMap, StatusNivel } from '../types'
-import { HORA_ATUAL_INDEX, TOTAL_JANELAS, statusHora, statusPorRazao } from './status'
+import { HORA_ATUAL_INDEX, TOTAL_JANELAS, statusHora, statusJanela, statusPorRazao } from './status'
 
 export interface HoraAgg {
   index: number

@@ -1,11 +1,11 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import type React from 'react'
 import { Bell, Building2, CalendarDays, Cog, Droplets, Factory, Layers, Package, Plus, Scissors, Search, Sparkles, TrendingUp, Truck } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../nav'
 import { useDevice } from '../components/DeviceFrame'
 import { useEmpresaResumo, type EmpresaResumo } from '../hooks/useEmpresa'
-import { Card, ProgressBar, ProgressRing, StatusBadge } from '../components/ui'
+import { Card, ProgressRing, StatusBadge } from '../components/ui'
 import { agregarPeca, type DiaAgg } from '../lib/aggregates'
 import { STATUS_TOKENS, getHoraAtualIndex, pct } from '../lib/status'
 import { pecaEstaEmEtapa, qtdRefsPorEtapa } from '../lib/etapas'
@@ -174,13 +174,11 @@ export function EmpresasScreen() {
               onChange={(e) => setEtapaFiltro(e)}
             />
             <div className={cx('grid gap-4', wide ? 'grid-cols-2' : 'grid-cols-1')}>
-              {pecaLista.map(({ peca, agg, qtdMaquinas, qtdEmpresas }) => (
+              {pecaLista.map(({ peca, agg }) => (
                 <PecaCard
                   key={peca.id}
                   peca={peca}
                   agg={agg}
-                  qtdMaquinas={qtdMaquinas}
-                  qtdEmpresas={qtdEmpresas}
                   onClick={() => go({ name: 'peca', pecaId: peca.id })}
                 />
               ))}
@@ -249,18 +247,6 @@ function EmpresaCard({ empresa, resumo }: { empresa: Empresa; resumo: EmpresaRes
         </div>
       </div>
     </Card>
-  )
-}
-
-function Metric({ icon, label, children }: { icon?: ReactNode; label: string; children: ReactNode }) {
-  return (
-    <div className="px-2 py-2.5">
-      <p className="flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-brand-400">
-        {icon}
-        {label}
-      </p>
-      <p className="mt-0.5 text-sm font-bold text-brand-950">{children}</p>
-    </div>
   )
 }
 
@@ -379,14 +365,10 @@ function EntregaBadge({ dataIso }: { dataIso?: string }) {
 function PecaCard({
   peca,
   agg,
-  qtdMaquinas,
-  qtdEmpresas,
   onClick,
 }: {
   peca: Peca
   agg: DiaAgg
-  qtdMaquinas: number
-  qtdEmpresas: number
   onClick?: () => void
 }) {
   const t = STATUS_TOKENS[agg.nivel]
@@ -446,7 +428,7 @@ function PecaCard({
 
 
         {/* Previsão de entrega */}
-        <EntregaBadge dataIso={peca.etapas.expedicao?.planejado} />
+        <EntregaBadge dataIso={peca.etapas?.expedicao?.planejado} />
       </div>
     </div>
   )
