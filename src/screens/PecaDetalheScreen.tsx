@@ -1,12 +1,16 @@
-import { useRef, useEffect, Fragment } from 'react'
+import { useRef, useEffect } from 'react'
 import {
   ArrowLeft,
   Building2,
   CheckCircle2,
   ChevronRight,
   Cog,
+  Droplets,
   Package,
   Ruler,
+  Scissors,
+  Sparkles,
+  Truck,
   Wrench,
   TrendingUp,
   Clock,
@@ -18,13 +22,22 @@ import { agregarPeca } from '../lib/aggregates'
 import { STATUS_TOKENS, getHoraAtualIndex, pct } from '../lib/status'
 import { Card, ProgressBar, ProgressRing, StatusBadge } from '../components/ui'
 import { cx, nInt } from '../lib/format'
-import type { EtapaPeca, EtapaInfo } from '../types'
+import type { EtapaPeca, Peca } from '../types'
+import {
+  ETAPA_ORDER,
+  ETAPA_LABEL,
+  ETAPA_SHADE,
+  qtdEtapa,
+  pctEtapa,
+  etapaFrente,
+  etapaEhProducao,
+  wipPorEtapa,
+  estadoEtapa,
+} from '../lib/etapas'
 
 // ---------------------------------------------------------------------------
 // Config de etapas
 // ---------------------------------------------------------------------------
-
-const ETAPA_ORDER: EtapaPeca[] = ['aprovada', 'medicao', 'producao', 'entrega']
 
 const ETAPA_CONFIG: {
   id: EtapaPeca
@@ -33,8 +46,12 @@ const ETAPA_CONFIG: {
 }[] = [
   { id: 'aprovada', label: 'Aprovada', Icon: CheckCircle2 },
   { id: 'medicao', label: 'Medição', Icon: Ruler },
+  { id: 'corte', label: 'Corte', Icon: Scissors },
   { id: 'producao', label: 'Produção', Icon: Cog },
-  { id: 'entrega', label: 'Entrega', Icon: Package },
+  { id: 'acabamento', label: 'Acabamento', Icon: Sparkles },
+  { id: 'lavanderia', label: 'Lavanderia', Icon: Droplets },
+  { id: 'embalagem', label: 'Embalagem', Icon: Package },
+  { id: 'expedicao', label: 'Expedição', Icon: Truck },
 ]
 
 // ---------------------------------------------------------------------------
@@ -58,173 +75,218 @@ function cmpDatas(a: string, b: string): -1 | 0 | 1 {
 // JornadaTimeline
 // ---------------------------------------------------------------------------
 
-function JornadaTimeline({
-  etapaAtual,
-  etapas,
-}: {
-  etapaAtual: EtapaPeca
-  etapas?: Partial<Record<EtapaPeca, EtapaInfo>>
-}) {
-  const currentIdx = ETAPA_ORDER.indexOf(etapaAtual)
-  const currentNodeRef = useRef<HTMLDivElement>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
+function iconePorEtapa(etapa: EtapaPeca): React.ElementType {
+  return ETAPA_CONFIG.find((e) => e.id === etapa)?.Icon ?? Cog
+}
 
-  // Scroll para a etapa atual no mount
+function JornadaTimeline({ peca }: { peca: Peca }) {
+  const total = peca.quantidadeTotal
+  const frente = etapaFrente(peca)
+  const wip = wipPorEtapa(peca)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const frenteRef = useRef<HTMLDivElement>(null)
+
+  // Centraliza a frente de produção no carrossel ao montar
   useEffect(() => {
-    const node = currentNodeRef.current
+    const node = frenteRef.current
     const container = scrollRef.current
     if (!node || !container) return
-    // Calcula offset para centralizar o nó atual no container
-    const nodeLeft = node.offsetLeft
-    const nodeWidth = node.offsetWidth
-    const containerWidth = container.offsetWidth
-    container.scrollLeft = nodeLeft - containerWidth / 2 + nodeWidth / 2
+    container.scrollLeft = node.offsetLeft - container.offsetWidth / 2 + node.offsetWidth / 2
   }, [])
 
+  // Segmentos do WIP: etapas onde há peças "paradas" agora
+  const segmentos = ETAPA_ORDER.map((etapa) => ({ etapa, qtd: wip[etapa] })).filter(
+    (s) => s.qtd > 0,
+  )
+
+  const ALTURA = 96
+
   return (
-    <div ref={scrollRef} className="no-scrollbar overflow-x-auto">
-      {/* ------------------------------------------------------------------ */}
-      {/* Linha do track (circles + conectores)                               */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="flex min-w-max items-center px-5">
-        {ETAPA_CONFIG.map((etapa, idx) => {
-          const state: 'done' | 'current' | 'future' =
-            idx < currentIdx ? 'done' : idx === currentIdx ? 'current' : 'future'
-
-          const isConnectorDone = idx > 0 && (idx <= currentIdx)
-
-          return (
-            <Fragment key={etapa.id}>
-              {/* Conector */}
-              {idx > 0 && (
-                <div
-                  className={cx(
-                    'h-0.5 flex-1 shrink-0 transition-colors',
-                    isConnectorDone
-                      ? 'bg-brand-700'
-                      : 'bg-brand-200',
-                    !isConnectorDone && 'border-t-0',
-                  )}
-                  style={
-                    !isConnectorDone
-                      ? {
-                          background:
-                            'repeating-linear-gradient(90deg, #d4d4d4 0, #d4d4d4 6px, transparent 6px, transparent 12px)',
-                          height: '2px',
-                        }
-                      : undefined
-                  }
-                />
-              )}
-
-              {/* Nó */}
-              <div
-                ref={state === 'current' ? currentNodeRef : undefined}
-                className="flex w-[84px] shrink-0 justify-center"
-              >
-                <div
-                  className={cx(
-                    'flex h-12 w-12 items-center justify-center rounded-full border-2 transition-all',
-                    state === 'done'
-                      ? 'border-brand-700 bg-brand-700'
-                      : state === 'current'
-                      ? 'border-brand-950 bg-brand-950 ring-4 ring-brand-200'
-                      : 'border-brand-200 bg-white',
-                  )}
-                >
-                  {state === 'done' ? (
-                    <CheckCircle2 size={20} className="text-white" />
-                  ) : (
-                    <etapa.Icon
-                      size={18}
-                      className={state === 'current' ? 'text-white' : 'text-brand-300'}
-                    />
-                  )}
-                </div>
-              </div>
-            </Fragment>
-          )
-        })}
+    <div>
+      {/* Resumo: total + frente */}
+      <div className="mb-3 flex items-end justify-between px-5">
+        <div>
+          <p className="text-3xl font-black leading-none text-brand-950">{nInt(total)}</p>
+          <p className="mt-0.5 text-xs font-medium text-brand-400">peças na ordem</p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm font-extrabold text-brand-900">{ETAPA_LABEL[frente]}</p>
+          <p className="text-xs font-medium text-brand-400">frente de produção</p>
+        </div>
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Labels + datas (alinhadas com as colunas acima)                    */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="mt-2.5 flex min-w-max items-start px-5">
-        {ETAPA_CONFIG.map((etapa, idx) => {
-          const state: 'done' | 'current' | 'future' =
-            idx < currentIdx ? 'done' : idx === currentIdx ? 'current' : 'future'
-          const info = etapas?.[etapa.id]
+      {/* Barra de distribuição (onde as peças estão agora) */}
+      <div className="px-5">
+        <div className="flex h-3.5 w-full overflow-hidden rounded-full bg-brand-100">
+          {segmentos.map((s) => (
+            <div
+              key={s.etapa}
+              className={cx('h-full transition-all', ETAPA_SHADE[s.etapa].bg)}
+              style={{ width: `${(s.qtd / total) * 100}%` }}
+              title={`${ETAPA_LABEL[s.etapa]}: ${s.qtd}`}
+            />
+          ))}
+        </div>
+        {/* Legenda rolável */}
+        <div className="no-scrollbar mt-2 flex gap-3 overflow-x-auto pb-0.5">
+          {segmentos.map((s) => (
+            <div key={s.etapa} className="flex shrink-0 items-center gap-1.5">
+              <span className={cx('h-2.5 w-2.5 shrink-0 rounded-full', ETAPA_SHADE[s.etapa].dot)} />
+              <span className="whitespace-nowrap text-[11px] font-semibold text-brand-600">
+                {ETAPA_LABEL[s.etapa]}
+              </span>
+              <span className="text-[11px] font-black text-brand-900">{nInt(s.qtd)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
-          return (
-            <Fragment key={etapa.id}>
-              {/* Espaçador correspondente ao conector */}
-              {idx > 0 && <div className="flex-1 shrink-0" />}
+      {/* Carrossel de etapas: colunas de progresso (funil) */}
+      <div ref={scrollRef} className="no-scrollbar mt-5 overflow-x-auto">
+        <div className="flex min-w-max items-start gap-2 px-5">
+          {ETAPA_ORDER.map((etapa) => {
+            const info = peca.etapas?.[etapa]
+            const qtd = qtdEtapa(peca, etapa)
+            const p = pctEtapa(peca, etapa)
+            const estado = estadoEtapa(peca, etapa)
+            const Icon = iconePorEtapa(etapa)
+            const isFrente = etapa === frente
+            const producao = etapaEhProducao(etapa)
+            const concluido = producao ? estado === 'done' : !!info?.realizado
+            const emCurso = producao ? estado === 'active' : isFrente && !concluido
+            const apagado = producao ? estado === 'todo' : !concluido && !isFrente
+            const fill = estado === 'todo' ? 0 : Math.max(6, Math.round(p * ALTURA))
 
-              {/* Card de label */}
-              <div className="flex w-[84px] shrink-0 flex-col items-center gap-0.5 text-center">
-                {/* Label da etapa */}
-                <p
+            return (
+              <div
+                key={etapa}
+                ref={isFrente ? frenteRef : undefined}
+                className={cx(
+                  'flex w-[78px] shrink-0 flex-col items-center rounded-2xl px-1.5 pb-2 pt-2 transition',
+                  isFrente ? 'bg-brand-50 ring-1 ring-brand-200' : '',
+                )}
+              >
+                {/* Quantidade acumulada (só produção) */}
+                <span
                   className={cx(
-                    'text-[10px] font-extrabold uppercase tracking-wide leading-none',
-                    state === 'done'
-                      ? 'text-brand-600'
-                      : state === 'current'
-                      ? 'text-brand-950'
-                      : 'text-brand-300',
+                    'mb-1 text-sm font-black leading-none',
+                    apagado ? 'text-brand-300' : 'text-brand-900',
+                    !producao && 'select-none opacity-0',
                   )}
                 >
-                  {etapa.label}
-                </p>
+                  {producao ? nInt(qtd) : '–'}
+                </span>
 
-                {/* Badge "Atual" para etapa corrente */}
-                {state === 'current' && (
-                  <span className="mt-0.5 rounded-full bg-brand-900 px-2 py-0.5 text-[9px] font-bold leading-tight text-white">
-                    Atual
-                  </span>
+                {/* Barra de nível (produção) ou marco (aprovada/medição) */}
+                {producao ? (
+                  <div
+                    className="relative w-8 overflow-hidden rounded-full bg-brand-100"
+                    style={{ height: ALTURA }}
+                  >
+                    <div
+                      className={cx(
+                        'absolute bottom-0 w-full rounded-full transition-all duration-700',
+                        concluido ? 'bg-brand-800' : ETAPA_SHADE[etapa].bg,
+                      )}
+                      style={{ height: fill }}
+                    />
+                    {concluido && (
+                      <CheckCircle2
+                        size={13}
+                        className="absolute left-1/2 top-1.5 -translate-x-1/2 text-white"
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center" style={{ height: ALTURA }}>
+                    <div
+                      className={cx(
+                        'flex h-9 w-9 items-center justify-center rounded-full border-2 transition',
+                        concluido
+                          ? 'border-brand-800 bg-brand-800 text-white'
+                          : isFrente
+                          ? 'border-brand-400 bg-white'
+                          : 'border-brand-200 bg-white',
+                      )}
+                    >
+                      {concluido ? (
+                        <CheckCircle2 size={16} />
+                      ) : (
+                        <span
+                          className={cx(
+                            'h-2.5 w-2.5 rounded-full',
+                            isFrente ? 'bg-brand-400' : 'bg-brand-200',
+                          )}
+                        />
+                      )}
+                    </div>
+                  </div>
                 )}
 
-                {/* Datas */}
-                <div className="mt-1 flex flex-col items-center gap-0.5">
-                  {info?.planejado && (
-                    <div className="flex flex-col items-center">
-                      <span className="text-[9px] font-medium uppercase leading-none tracking-wide text-brand-400">
-                        Plan.
-                      </span>
-                      <span className="text-[12px] font-bold leading-tight text-brand-700">
-                        {fmtData(info.planejado)}
-                      </span>
-                    </div>
+                {/* Percentual (só produção) */}
+                <span
+                  className={cx(
+                    'mt-1 text-[10px] font-bold leading-none',
+                    apagado ? 'text-brand-300' : 'text-brand-500',
+                    !producao && 'select-none opacity-0',
                   )}
+                >
+                  {producao ? `${Math.round(p * 100)}%` : '–'}
+                </span>
 
-                  {info?.realizado && (
-                    <div className="mt-0.5 flex flex-col items-center">
-                      <span className="text-[9px] font-medium uppercase leading-none tracking-wide text-brand-400">
-                        Real.
-                      </span>
-                      <span
-                        className={cx(
-                          'text-[12px] font-bold leading-tight',
-                          cmpDatas(info.realizado, info.planejado) <= 0
-                            ? 'text-emerald-600'
-                            : 'text-red-500',
-                        )}
-                      >
-                        {fmtData(info.realizado)}
-                      </span>
-                    </div>
-                  )}
+                {/* Ícone + label */}
+                <div className="mt-2 flex flex-col items-center gap-0.5">
+                  <Icon
+                    size={15}
+                    className={
+                      isFrente
+                        ? 'text-brand-900'
+                        : apagado
+                        ? 'text-brand-300'
+                        : 'text-brand-500'
+                    }
+                  />
+                  <span
+                    className={cx(
+                      'text-center text-[10px] font-bold leading-tight',
+                      isFrente
+                        ? 'text-brand-900'
+                        : apagado
+                        ? 'text-brand-300'
+                        : 'text-brand-600',
+                    )}
+                  >
+                    {ETAPA_LABEL[etapa]}
+                  </span>
+                </div>
 
-                  {state === 'current' && !info?.realizado && (
-                    <span className="mt-0.5 text-[10px] font-medium italic text-brand-400">
+                {/* Data (realizada colorida, ou planejada) */}
+                <div className="mt-1 flex min-h-[24px] items-start justify-center">
+                  {info?.realizado ? (
+                    <span
+                      className={cx(
+                        'text-[11px] font-bold leading-tight',
+                        cmpDatas(info.realizado, info.planejado) <= 0
+                          ? 'text-emerald-600'
+                          : 'text-red-500',
+                      )}
+                    >
+                      {fmtData(info.realizado)}
+                    </span>
+                  ) : emCurso ? (
+                    <span className="text-[10px] font-medium italic leading-tight text-brand-400">
                       em curso
                     </span>
-                  )}
+                  ) : info?.planejado ? (
+                    <span className="text-[11px] font-medium leading-tight text-brand-400">
+                      {fmtData(info.planejado)}
+                    </span>
+                  ) : null}
                 </div>
               </div>
-            </Fragment>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -250,8 +312,8 @@ export function PecaDetalheScreen({ pecaId }: { pecaId: string }) {
 
   const t = STATUS_TOKENS[agg.nivel]
 
-  // Rótulo amigável da etapa atual
-  const etapaLabel = ETAPA_CONFIG.find((e) => e.id === peca.etapa)?.label ?? peca.etapa
+  // Rótulo da etapa mais avançada (frente de produção)
+  const etapaLabel = ETAPA_LABEL[etapaFrente(peca)]
 
   return (
     <div className="flex h-full flex-col bg-brand-100">
@@ -311,7 +373,7 @@ export function PecaDetalheScreen({ pecaId }: { pecaId: string }) {
           <p className="mb-3 px-5 text-[11px] font-extrabold uppercase tracking-widest text-brand-400">
             Jornada da peça
           </p>
-          <JornadaTimeline etapaAtual={peca.etapa} etapas={peca.etapas} />
+          <JornadaTimeline peca={peca} />
         </div>
 
         <div className={cx('px-4 pt-4', wide ? 'grid grid-cols-2 gap-4' : 'flex flex-col gap-4')}>

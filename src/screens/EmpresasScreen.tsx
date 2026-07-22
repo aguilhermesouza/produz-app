@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import type React from 'react'
-import { Bell, Building2, CheckCircle2, Cog, Factory, Layers, Package, Ruler, Search, TrendingUp } from 'lucide-react'
+import { Bell, Building2, CheckCircle2, Cog, Droplets, Factory, Layers, Package, Ruler, Scissors, Search, Sparkles, TrendingUp, Truck } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../nav'
 import { useDevice } from '../components/DeviceFrame'
@@ -8,6 +8,7 @@ import { useEmpresaResumo, type EmpresaResumo } from '../hooks/useEmpresa'
 import { Card, ProgressBar, ProgressRing, StatusBadge } from '../components/ui'
 import { agregarPeca, type DiaAgg } from '../lib/aggregates'
 import { STATUS_TOKENS, getHoraAtualIndex, pct } from '../lib/status'
+import { pecaEstaEmEtapa, qtdPecasNaEtapa } from '../lib/etapas'
 import { cx, nInt } from '../lib/format'
 import type { Empresa, EtapaPeca, Peca, StatusNivel } from '../types'
 
@@ -18,8 +19,12 @@ const PESO_STATUS: Record<StatusNivel, number> = { bad: 0, warn: 1, ok: 2 }
 const ETAPAS: { id: EtapaPeca; label: string; Icon: React.ElementType }[] = [
   { id: 'aprovada', label: 'Aprovada', Icon: CheckCircle2 },
   { id: 'medicao', label: 'Medição', Icon: Ruler },
+  { id: 'corte', label: 'Corte', Icon: Scissors },
   { id: 'producao', label: 'Produção', Icon: Cog },
-  { id: 'entrega', label: 'Entrega', Icon: Package },
+  { id: 'acabamento', label: 'Acabamento', Icon: Sparkles },
+  { id: 'lavanderia', label: 'Lavanderia', Icon: Droplets },
+  { id: 'embalagem', label: 'Embalagem', Icon: Package },
+  { id: 'expedicao', label: 'Expedição', Icon: Truck },
 ]
 
 export function EmpresasScreen() {
@@ -48,7 +53,8 @@ export function EmpresasScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resumos, busca, ordem])
 
-  const pecaLista = useMemo(() => {
+  // Base (sem filtro de etapa): usada para contagens estáveis e para a grade.
+  const pecaBase = useMemo(() => {
     const q = busca.trim().toLowerCase()
     const horaAtual = getHoraAtualIndex()
     return pecas
@@ -61,12 +67,20 @@ export function EmpresasScreen() {
       })
       .filter((item): item is NonNullable<typeof item> => item !== null)
       .filter(({ peca }) => !q || peca.nome.toLowerCase().includes(q))
-      .filter(({ peca }) => etapaFiltro === null || peca.etapa === etapaFiltro)
       .sort((a, b) => {
         if (ordem === 'nome') return a.peca.nome.localeCompare(b.peca.nome)
         return (a.agg.nivel === 'ok' ? 1 : 0) - (b.agg.nivel === 'ok' ? 1 : 0)
       })
-  }, [pecas, maquinas, producao, busca, ordem, etapaFiltro])
+  }, [pecas, maquinas, producao, busca, ordem])
+
+  // Grade filtrada pela etapa selecionada.
+  const pecaLista = useMemo(
+    () =>
+      pecaBase.filter(
+        ({ peca }) => etapaFiltro === null || pecaEstaEmEtapa(peca, etapaFiltro),
+      ),
+    [pecaBase, etapaFiltro],
+  )
 
   return (
     <div className="flex h-full flex-col">
@@ -148,7 +162,7 @@ export function EmpresasScreen() {
         ) : (
           <>
             <EtapaTimeline
-              pecaLista={pecaLista}
+              pecas={pecaBase.map((x) => x.peca)}
               etapaAtiva={etapaFiltro}
               onChange={(e) => setEtapaFiltro(e)}
             />
@@ -232,20 +246,18 @@ function Metric({ icon, label, children }: { icon?: ReactNode; label: string; ch
   )
 }
 
-type PecaItem = { peca: Peca; agg: DiaAgg; qtdMaquinas: number; qtdEmpresas: number }
-
 function EtapaTimeline({
-  pecaLista,
+  pecas,
   etapaAtiva,
   onChange,
 }: {
-  pecaLista: PecaItem[]
+  pecas: Peca[]
   etapaAtiva: EtapaPeca | null
   onChange: (e: EtapaPeca | null) => void
 }) {
-  // Contagem total por etapa (ignora filtro ativo para mostrar sempre os números)
+  // Total de peças (unidades) por etapa — estável, somando todas as OPs.
   const allCounts = ETAPAS.reduce(
-    (acc, e) => ({ ...acc, [e.id]: pecaLista.filter((p) => p.peca.etapa === e.id).length }),
+    (acc, e) => ({ ...acc, [e.id]: qtdPecasNaEtapa(pecas, e.id) }),
     {} as Record<EtapaPeca, number>,
   )
 
@@ -287,7 +299,7 @@ function EtapaTimeline({
                     ativo ? 'bg-white/25 text-white' : 'bg-brand-100 text-brand-500',
                   )}
                 >
-                  {allCounts[etapa.id]}
+                  {nInt(allCounts[etapa.id])}
                 </span>
               </button>
             </div>
@@ -355,7 +367,21 @@ function PecaCard({
 
       {/* Stats */}
       <div className="p-4">
-        {/* Numbers row */}
+        {/* Pedido total da OP */}
+        <div className="mb-3 flex items-center justify-between border-b border-brand-100 pb-3">
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-brand-500">
+            <Package size={14} />
+            Pedido total
+          </span>
+          <span className="text-lg font-black leading-none text-brand-900">
+            {nInt(peca.quantidadeTotal)} <span className="text-xs font-semibold text-brand-400">pç</span>
+          </span>
+        </div>
+
+        {/* Produção de hoje */}
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-brand-400">
+          Produção de hoje
+        </p>
         <div className="mb-1.5 flex items-baseline gap-1.5">
           <span className={cx('text-xl font-black leading-none', t.corTexto)}>
             {nInt(agg.realizado)}

@@ -13,13 +13,23 @@ export interface Operacao {
   nome: string
 }
 
-export type EtapaPeca = 'aprovada' | 'medicao' | 'producao' | 'entrega'
+export type EtapaPeca =
+  | 'aprovada'
+  | 'medicao'
+  | 'corte'
+  | 'producao'
+  | 'acabamento'
+  | 'lavanderia'
+  | 'embalagem'
+  | 'expedicao'
 
 export interface EtapaInfo {
-  /** Data planejada para início/conclusão da etapa ('YYYY-MM-DD'). */
+  /** Data planejada para conclusão da etapa ('YYYY-MM-DD'). */
   planejado: string
-  /** Data real de conclusão ('YYYY-MM-DD'). Ausente enquanto a etapa não foi concluída. */
+  /** Data real de conclusão ('YYYY-MM-DD'). Presente só quando a etapa concluiu 100%. */
   realizado?: string
+  /** Quantidade acumulada de peças que já alcançaram esta etapa. */
+  qtd?: number
 }
 
 export interface Peca {
@@ -29,9 +39,9 @@ export interface Peca {
   fotoUrl: string
   /** Meta de peças finalizadas por hora para esta peça/célula. */
   metaHora: number
-  /** Etapa atual no fluxo de produção. */
-  etapa: EtapaPeca
-  /** Datas planejadas e realizadas por etapa. */
+  /** Quantidade total da ordem de produção. */
+  quantidadeTotal: number
+  /** Datas e quantidades por etapa da jornada. */
   etapas?: Partial<Record<EtapaPeca, EtapaInfo>>
 }
 
