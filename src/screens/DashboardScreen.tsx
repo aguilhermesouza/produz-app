@@ -9,7 +9,7 @@ import { HourCell } from '../components/HourCell'
 import { BottomSheet } from '../components/BottomSheet'
 import { NumericPad } from '../components/NumericPad'
 import { Card, ProgressBar, ProgressRing, StatusBadge } from '../components/ui'
-import { HORAS, getHoraAtualIndex, STATUS_TOKENS, pct } from '../lib/status'
+import { HORAS, getHoraAtualIndex, STATUS_TOKENS, pct, statusPorRazao } from '../lib/status'
 import type { DiaAgg } from '../lib/aggregates'
 import { cx, nInt } from '../lib/format'
 
@@ -28,7 +28,7 @@ function isSameDay(a: Date, b: Date) {
 }
 
 export function DashboardScreen({ empresaId }: { empresaId: string }) {
-  const { empresas, updatePecaMeta } = useStore()
+  const { empresas, updatePecaMeta, realizadoDia, updateRealizadoDia } = useStore()
   const { go } = useNav()
   const { wide } = useDevice()
   const empresa = empresas.find((e) => e.id === empresaId)!
@@ -48,13 +48,21 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
   const [pecaSel, setPecaSel] = useState<string | null>(null)
   const [editandoMeta, setEditandoMeta] = useState(false)
   const [metaInput, setMetaInput] = useState('')
+  const [editandoRealizado, setEditandoRealizado] = useState(false)
+  const [realizadoInput, setRealizadoInput] = useState('')
 
   const aggAtual: DiaAgg =
     pecaSel === null
       ? resumo.total
       : resumo.pecas.find((p) => p.peca.id === pecaSel)?.agg ?? resumo.total
 
-  const t = STATUS_TOKENS[aggAtual.nivel]
+  // Override manual do realizado (se o usuário atualizou manualmente)
+  const realizadoManual = pecaSel !== null ? realizadoDia[pecaSel] : undefined
+  const realizadoExibido = realizadoManual ?? aggAtual.realizado
+  const razaoExibida = aggAtual.meta > 0 ? realizadoExibido / aggAtual.meta : 1
+  const nivelExibido = statusPorRazao(razaoExibida)
+
+  const t = STATUS_TOKENS[pecaSel !== null ? nivelExibido : aggAtual.nivel]
   const multiPeca = resumo.pecas.length > 1
 
   const abrirHora = (h: number) =>
@@ -97,7 +105,7 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
         {/* Painel da meta do dia */}
         <Card className={cx('mb-4 border-2 p-4', t.borda)}>
           <div className="flex items-center gap-4">
-            <ProgressRing razao={aggAtual.razao} nivel={aggAtual.nivel} size={92} stroke={10}>
+            <ProgressRing razao={pecaSel !== null ? razaoExibida : aggAtual.razao} nivel={pecaSel !== null ? nivelExibido : aggAtual.nivel} size={92} stroke={10}>
               <span className={cx('text-xl font-black', t.corTexto)}>{pct(aggAtual.razao)}%</span>
               <span className="text-[10px] font-semibold text-brand-400">da meta</span>
             </ProgressRing>
@@ -106,8 +114,21 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
                 {pecaSel === null ? 'Total do dia' : 'Peça selecionada'}
               </p>
               <p className="text-3xl font-black leading-none text-brand-950">
-                {nInt(aggAtual.realizado)}
+                {nInt(pecaSel !== null ? realizadoExibido : aggAtual.realizado)}
               </p>
+              {pecaSel !== null && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRealizadoInput(String(realizadoExibido))
+                    setEditandoRealizado(true)
+                  }}
+                  className="-mt-0.5 mb-1 inline-flex items-center gap-1 rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-600 transition hover:bg-brand-200 active:scale-95"
+                >
+                  <Pencil size={10} />
+                  editar produzido
+                </button>
+              )}
               <p className="mb-2 text-sm text-brand-500">
                 de {nInt(aggAtual.meta)} peças previstas
                 {pecaSel !== null && (
@@ -125,7 +146,7 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
                   </button>
                 )}
               </p>
-              <StatusBadge nivel={aggAtual.nivel} />
+              <StatusBadge nivel={pecaSel !== null ? nivelExibido : aggAtual.nivel} />
             </div>
           </div>
           <ProgressBar razao={aggAtual.razao} nivel={aggAtual.nivel} className="mt-4" />
@@ -254,6 +275,47 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
                 const v = Number(metaInput)
                 if (pecaSel && v > 0) updatePecaMeta(pecaSel, v)
                 setEditandoMeta(false)
+              }}
+              className="mt-4 w-full rounded-2xl bg-brand-900 py-3.5 text-base font-bold text-white shadow-lift transition active:scale-95"
+            >
+              Confirmar
+            </button>
+          </BottomSheet>
+        )
+      })()}
+
+      {/* BottomSheet: editar total produzido */}
+      {pecaSel !== null && (() => {
+        const pecaAtual = resumo.pecas.find((p) => p.peca.id === pecaSel)?.peca
+        return (
+          <BottomSheet
+            open={editandoRealizado}
+            onClose={() => setEditandoRealizado(false)}
+            title={`Produzido · ${pecaAtual?.nome ?? ''}`}
+          >
+            <div className="mb-4 rounded-2xl bg-brand-900 px-4 py-3 text-center">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">
+                Total produzido hoje
+              </p>
+              <p className="text-4xl font-black tabular-nums text-white">
+                {realizadoInput || '0'}
+              </p>
+              <p className="mt-0.5 text-xs text-white/50">peças</p>
+            </div>
+            <div className="mb-4 flex items-center justify-between rounded-2xl bg-brand-50 px-4 py-3">
+              <span className="text-sm font-semibold text-brand-500">Meta do dia</span>
+              <span className="text-xl font-black text-brand-950">
+                {nInt(aggAtual.meta)}
+                <span className="ml-1 text-sm font-semibold text-brand-400">pç</span>
+              </span>
+            </div>
+            <NumericPad value={realizadoInput} onChange={setRealizadoInput} />
+            <button
+              type="button"
+              onClick={() => {
+                const v = Number(realizadoInput)
+                if (pecaSel && v >= 0) updateRealizadoDia(pecaSel, v)
+                setEditandoRealizado(false)
               }}
               className="mt-4 w-full rounded-2xl bg-brand-900 py-3.5 text-base font-bold text-white shadow-lift transition active:scale-95"
             >
