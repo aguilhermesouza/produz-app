@@ -43,7 +43,7 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
   const [devHoraOverride, setDevHoraOverride] = useState<number | null>(null)
 
   const horaAtual = useMemo(() => {
-    if (import.meta.env.DEV && devHoraOverride !== null) return devHoraOverride
+    if (devHoraOverride !== null) return devHoraOverride
     const hoje = new Date()
     hoje.setHours(0, 0, 0, 0)
     return isSameDay(selectedDate, hoje) ? getHoraAtualIndex() : HORAS.length - 1
@@ -138,43 +138,41 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
 
       <DateStrip date={selectedDate} onChange={(d) => { setSelectedDate(d); setPecaSel(null) }} />
 
-      {/* ---- DEV: seletor de hora simulada -------------------------------- */}
-      {import.meta.env.DEV && (
-        <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-3 py-1.5">
-          <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-amber-600">
-            ⏰ Apenas para simular comportamento variando horários -- 
-          </span>
-          <div className="no-scrollbar flex flex-1 gap-1 overflow-x-auto">
+      {/* ---- Seletor de hora simulada ------------------------------------ */}
+      <div className="flex items-center gap-2 border-b border-brand-100 bg-brand-50 px-3 py-1.5">
+        <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-brand-400">
+          ⏰
+        </span>
+        <div className="no-scrollbar flex flex-1 gap-1 overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => setDevHoraOverride(null)}
+            className={cx(
+              'shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition',
+              devHoraOverride === null
+                ? 'bg-brand-800 text-white'
+                : 'text-brand-500 hover:bg-brand-100',
+            )}
+          >
+            Agora
+          </button>
+          {HORAS.map((h, i) => (
             <button
+              key={i}
               type="button"
-              onClick={() => setDevHoraOverride(null)}
+              onClick={() => setDevHoraOverride(i)}
               className={cx(
                 'shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition',
-                devHoraOverride === null
-                  ? 'bg-amber-500 text-white'
-                  : 'text-amber-600 hover:bg-amber-100',
+                devHoraOverride === i
+                  ? 'bg-brand-800 text-white'
+                  : 'text-brand-500 hover:bg-brand-100',
               )}
             >
-              Real
+              {h}
             </button>
-            {HORAS.map((h, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setDevHoraOverride(i)}
-                className={cx(
-                  'shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition',
-                  devHoraOverride === i
-                    ? 'bg-amber-500 text-white'
-                    : 'text-amber-600 hover:bg-amber-100',
-                )}
-              >
-                {h}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
-      )}
+      </div>
 
       <div className="thin-scroll flex-1 overflow-y-auto px-4 pb-28 pt-4">
         {/* Desempenho acumulado */}
