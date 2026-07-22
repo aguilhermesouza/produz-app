@@ -54,11 +54,12 @@ export const PECAS: Peca[] = [
       aprovada:   { planejado: '2026-07-01', realizado: '2026-07-01' },
       medicao:    { planejado: '2026-07-06', realizado: '2026-07-05' },
       corte:      { planejado: '2026-07-10', realizado: '2026-07-11', qtd: 5000 },
-      producao:   { planejado: '2026-07-15', qtd: 4000 },
-      acabamento: { planejado: '2026-07-24', qtd: 2500 },
-      lavanderia: { planejado: '2026-07-28', qtd: 1000 },
+      producao:   { planejado: '2026-07-15', qtd: 5000 },  // todas entraram
+      acabamento: { planejado: '2026-07-24', qtd: 3500 },  // 70% em acabamento
+      lavanderia: { planejado: '2026-07-28', qtd: 1500 },  // 30% em lavanderia
       embalagem:  { planejado: '2026-08-01', qtd: 0 },
       expedicao:  { planejado: '2026-08-05', qtd: 0 },
+      // WIP: producao=1500 | acabamento=2000 | lavanderia=1500 → total=5000 ✓
     },
   },
   {
@@ -72,12 +73,13 @@ export const PECAS: Peca[] = [
     etapas: {
       aprovada:   { planejado: '2026-06-20', realizado: '2026-06-21' },
       medicao:    { planejado: '2026-06-27', realizado: '2026-06-30' },
-      corte:      { planejado: '2026-07-18', qtd: 7000 },
-      producao:   { planejado: '2026-07-24', qtd: 1400 },
+      corte:      { planejado: '2026-07-18', realizado: '2026-07-21', qtd: 7000 },
+      producao:   { planejado: '2026-07-24', qtd: 2800 },  // 40% iniciou produção
       acabamento: { planejado: '2026-08-01', qtd: 0 },
       lavanderia: { planejado: '2026-08-05', qtd: 0 },
       embalagem:  { planejado: '2026-08-09', qtd: 0 },
       expedicao:  { planejado: '2026-08-14', qtd: 0 },
+      // WIP: corte=4200 | producao=2800 → total=7000 ✓
     },
   },
   {
@@ -96,7 +98,8 @@ export const PECAS: Peca[] = [
       acabamento: { planejado: '2026-06-28', realizado: '2026-06-27', qtd: 10000 },
       lavanderia: { planejado: '2026-07-04', realizado: '2026-07-05', qtd: 10000 },
       embalagem:  { planejado: '2026-07-10', realizado: '2026-07-09', qtd: 10000 },
-      expedicao:  { planejado: '2026-07-22', qtd: 6400 },
+      expedicao:  { planejado: '2026-07-22', qtd: 7200 },  // 72% expedido, 2800 na fila
+      // WIP: embalagem=2800 | expedicao=7200 → total=10000 ✓
     },
   },
   {
@@ -109,13 +112,14 @@ export const PECAS: Peca[] = [
     quantidadeTotal: 8000,
     etapas: {
       aprovada:   { planejado: '2026-07-10', realizado: '2026-07-10' },
-      medicao:    { planejado: '2026-07-19' },
-      corte:      { planejado: '2026-07-26', qtd: 0 },
-      producao:   { planejado: '2026-08-01', qtd: 0 },
+      medicao:    { planejado: '2026-07-19', realizado: '2026-07-21' },
+      corte:      { planejado: '2026-07-22', realizado: '2026-07-22', qtd: 8000 },
+      producao:   { planejado: '2026-08-01', qtd: 1600 },  // 20% iniciou produção
       acabamento: { planejado: '2026-08-08', qtd: 0 },
       lavanderia: { planejado: '2026-08-12', qtd: 0 },
       embalagem:  { planejado: '2026-08-16', qtd: 0 },
       expedicao:  { planejado: '2026-08-21', qtd: 0 },
+      // WIP: corte=6400 | producao=1600 → total=8000 ✓
     },
   },
   {
@@ -130,11 +134,12 @@ export const PECAS: Peca[] = [
       aprovada:   { planejado: '2026-07-02', realizado: '2026-07-03' },
       medicao:    { planejado: '2026-07-08', realizado: '2026-07-09' },
       corte:      { planejado: '2026-07-13', realizado: '2026-07-14', qtd: 9000 },
-      producao:   { planejado: '2026-07-19', qtd: 6000 },
-      acabamento: { planejado: '2026-07-27', qtd: 2800 },
-      lavanderia: { planejado: '2026-07-31', qtd: 0 },
+      producao:   { planejado: '2026-07-19', qtd: 9000 },  // todas em produção
+      acabamento: { planejado: '2026-07-27', qtd: 4500 },  // 50% em acabamento
+      lavanderia: { planejado: '2026-07-31', qtd: 1800 },  // 20% em lavanderia
       embalagem:  { planejado: '2026-08-04', qtd: 0 },
       expedicao:  { planejado: '2026-08-08', qtd: 0 },
+      // WIP: producao=4500 | acabamento=2700 | lavanderia=1800 → total=9000 ✓
     },
   },
   {
@@ -146,14 +151,15 @@ export const PECAS: Peca[] = [
     metaHora: 90,
     quantidadeTotal: 12000,
     etapas: {
-      aprovada:   { planejado: '2026-07-21' },
-      medicao:    { planejado: '2026-07-28' },
-      corte:      { planejado: '2026-08-03', qtd: 0 },
-      producao:   { planejado: '2026-08-09', qtd: 0 },
-      acabamento: { planejado: '2026-08-16', qtd: 0 },
-      lavanderia: { planejado: '2026-08-20', qtd: 0 },
-      embalagem:  { planejado: '2026-08-24', qtd: 0 },
+      aprovada:   { planejado: '2026-07-21', realizado: '2026-07-21' },
+      medicao:    { planejado: '2026-07-22', realizado: '2026-07-22' },
+      corte:      { planejado: '2026-07-24', realizado: '2026-07-24', qtd: 12000 },
+      producao:   { planejado: '2026-08-05', qtd: 0 },
+      acabamento: { planejado: '2026-08-13', qtd: 0 },
+      lavanderia: { planejado: '2026-08-17', qtd: 0 },
+      embalagem:  { planejado: '2026-08-22', qtd: 0 },
       expedicao:  { planejado: '2026-08-29', qtd: 0 },
+      // WIP: corte=12000 → total=12000 ✓
     },
   },
   {
@@ -169,10 +175,11 @@ export const PECAS: Peca[] = [
       medicao:    { planejado: '2026-07-01', realizado: '2026-07-02' },
       corte:      { planejado: '2026-07-07', realizado: '2026-07-06', qtd: 10000 },
       producao:   { planejado: '2026-07-13', realizado: '2026-07-14', qtd: 10000 },
-      acabamento: { planejado: '2026-07-22', qtd: 7200 },
-      lavanderia: { planejado: '2026-07-26', qtd: 4500 },
-      embalagem:  { planejado: '2026-07-30', qtd: 1600 },
+      acabamento: { planejado: '2026-07-22', qtd: 10000 },  // todas em acabamento/saindo
+      lavanderia: { planejado: '2026-07-26', qtd: 7500 },   // 75% em lavanderia
+      embalagem:  { planejado: '2026-07-30', qtd: 2500 },   // 25% em embalagem
       expedicao:  { planejado: '2026-08-03', qtd: 0 },
+      // WIP: acabamento=2500 | lavanderia=5000 | embalagem=2500 → total=10000 ✓
     },
   },
   {
@@ -188,10 +195,11 @@ export const PECAS: Peca[] = [
       medicao:    { planejado: '2026-07-06', realizado: '2026-07-06' },
       corte:      { planejado: '2026-07-11', realizado: '2026-07-12', qtd: 15000 },
       producao:   { planejado: '2026-07-16', realizado: '2026-07-17', qtd: 15000 },
-      acabamento: { planejado: '2026-07-21', qtd: 9000 },
-      lavanderia: { planejado: '2026-07-27', qtd: 0 },
-      embalagem:  { planejado: '2026-07-31', qtd: 0 },
+      acabamento: { planejado: '2026-07-21', realizado: '2026-07-21', qtd: 15000 },
+      lavanderia: { planejado: '2026-07-27', qtd: 9000 },  // 60% em lavanderia
+      embalagem:  { planejado: '2026-07-31', qtd: 3000 },  // 20% em embalagem
       expedicao:  { planejado: '2026-08-04', qtd: 0 },
+      // WIP: acabamento=6000 | lavanderia=6000 | embalagem=3000 → total=15000 ✓
     },
   },
   {
@@ -208,9 +216,10 @@ export const PECAS: Peca[] = [
       corte:      { planejado: '2026-06-23', realizado: '2026-06-24', qtd: 18000 },
       producao:   { planejado: '2026-06-29', realizado: '2026-07-01', qtd: 18000 },
       acabamento: { planejado: '2026-07-07', realizado: '2026-07-08', qtd: 18000 },
-      lavanderia: { planejado: '2026-07-19', qtd: 11500 },
-      embalagem:  { planejado: '2026-07-25', qtd: 2900 },
-      expedicao:  { planejado: '2026-07-30', qtd: 0 },
+      lavanderia: { planejado: '2026-07-19', realizado: '2026-07-20', qtd: 18000 },
+      embalagem:  { planejado: '2026-07-25', qtd: 11000 },  // 61% em embalagem
+      expedicao:  { planejado: '2026-07-30', qtd: 4500 },   // 25% expedido
+      // WIP: lavanderia=7000 | embalagem=6500 | expedicao=4500 → total=18000 ✓
     },
   },
   {
@@ -228,8 +237,9 @@ export const PECAS: Peca[] = [
       producao:   { planejado: '2026-07-04', realizado: '2026-07-05', qtd: 20000 },
       acabamento: { planejado: '2026-07-11', realizado: '2026-07-10', qtd: 20000 },
       lavanderia: { planejado: '2026-07-16', realizado: '2026-07-17', qtd: 20000 },
-      embalagem:  { planejado: '2026-07-21', qtd: 12500 },
-      expedicao:  { planejado: '2026-07-26', qtd: 4600 },
+      embalagem:  { planejado: '2026-07-21', qtd: 20000 },  // tudo em embalagem
+      expedicao:  { planejado: '2026-07-26', qtd: 12000 },  // 60% expedido (entrega em 4 dias)
+      // WIP: embalagem=8000 | expedicao=12000 → total=20000 ✓
     },
   },
 ]

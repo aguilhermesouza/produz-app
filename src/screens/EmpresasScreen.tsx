@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type React from 'react'
-import { Bell, Building2, CalendarDays, Cog, Droplets, Factory, Layers, Package, Plus, Scissors, Search, Sparkles, TrendingUp, Truck } from 'lucide-react'
+import { Bell, Building2, CalendarDays, Cog, Droplets, Factory, Layers, Package, Plus, Scissors, Search, TrendingUp, Truck } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../nav'
 import { useDevice } from '../components/DeviceFrame'
@@ -19,7 +19,6 @@ const PESO_STATUS: Record<StatusNivel, number> = { bad: 0, warn: 1, ok: 2 }
 const ETAPAS: { id: EtapaPeca; label: string; Icon: React.ElementType }[] = [
   { id: 'corte', label: 'Corte', Icon: Scissors },
   { id: 'producao', label: 'Produção', Icon: Cog },
-  { id: 'acabamento', label: 'Acabamento', Icon: Sparkles },
   { id: 'lavanderia', label: 'Lavanderia', Icon: Droplets },
   { id: 'embalagem', label: 'Embalagem', Icon: Package },
   { id: 'expedicao', label: 'Expedição', Icon: Truck },

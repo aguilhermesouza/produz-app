@@ -59,6 +59,8 @@ function fmtData(iso: string): string {
 // ---------------------------------------------------------------------------
 
 const ETAPAS_JORNADA: EtapaPeca[] = ['corte', 'producao', 'lavanderia', 'embalagem', 'expedicao']
+// Etapas onde há WIP editável (corte é marco de conclusão, não WIP)
+const ETAPAS_WIP: EtapaPeca[] = ['producao', 'lavanderia', 'embalagem', 'expedicao']
 
 function iconePorEtapa(etapa: EtapaPeca): React.ElementType {
   return ETAPA_CONFIG.find((e) => e.id === etapa)?.Icon ?? Cog
@@ -68,14 +70,14 @@ function JornadaTimeline({ peca }: { peca: Peca }) {
   const total = peca.quantidadeTotal
   const wip = wipPorEtapa(peca)
 
-  // Estado local editável — inicializado a partir dos dados reais da peça
+  // Estado local editável — apenas etapas WIP (corte é marco, não editável)
   const [localWip, setLocalWip] = useState<Record<string, number>>(
-    () => Object.fromEntries(ETAPAS_JORNADA.map((e) => [e, wip[e] ?? 0])),
+    () => Object.fromEntries(ETAPAS_WIP.map((e) => [e, wip[e] ?? 0])),
   )
   const [editando, setEditando] = useState<EtapaPeca | null>(null)
   const [tempVal, setTempVal] = useState('')
 
-  const totalDistribuido = ETAPAS_JORNADA.reduce((s, e) => s + (localWip[e] ?? 0), 0)
+  const totalDistribuido = ETAPAS_WIP.reduce((s, e) => s + (localWip[e] ?? 0), 0)
   const saldo = total - totalDistribuido
 
   const abrirEditor = (etapa: EtapaPeca) => {
@@ -89,7 +91,7 @@ function JornadaTimeline({ peca }: { peca: Peca }) {
     setEditando(null)
   }
 
-  const segmentos = ETAPAS_JORNADA.map((e) => ({ etapa: e, qtd: localWip[e] ?? 0 })).filter(
+  const segmentos = ETAPAS_WIP.map((e) => ({ etapa: e, qtd: localWip[e] ?? 0 })).filter(
     (s) => s.qtd > 0,
   )
 
@@ -149,7 +151,9 @@ function JornadaTimeline({ peca }: { peca: Peca }) {
         <div className="flex items-stretch px-5 pb-1">
           {ETAPAS_JORNADA.map((etapa, idx) => {
             const info = peca.etapas?.[etapa]
-            const qtd = localWip[etapa] ?? 0
+            // Corte é marco de conclusão: exibe o total cortado (cumulativo), não WIP
+            const ehCorte = etapa === 'corte'
+            const qtd = ehCorte ? (peca.etapas?.corte?.qtd ?? 0) : (localWip[etapa] ?? 0)
             const ratio = total > 0 ? qtd / total : 0
             const concluido = qtd >= total && total > 0
             const emCurso = !concluido && qtd > 0
@@ -167,10 +171,10 @@ function JornadaTimeline({ peca }: { peca: Peca }) {
                   />
                 )}
 
-                {/* Card clicável */}
+                {/* Card clicável (corte é somente leitura) */}
                 <button
                   type="button"
-                  onClick={() => abrirEditor(etapa)}
+                  onClick={() => !ehCorte && abrirEditor(etapa)}
                   className={cx(
                     'flex w-[108px] shrink-0 flex-col rounded-2xl p-3 text-left transition active:scale-95',
                     concluido
