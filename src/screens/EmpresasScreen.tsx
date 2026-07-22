@@ -12,7 +12,6 @@ import { pecaEstaEmEtapa, qtdRefsPorEtapa } from '../lib/etapas'
 import { cx, nInt } from '../lib/format'
 import type { Empresa, EtapaPeca, Peca, StatusNivel } from '../types'
 
-type Ordem = 'status' | 'nome'
 
 const PESO_STATUS: Record<StatusNivel, number> = { bad: 0, warn: 1, ok: 2 }
 
@@ -29,7 +28,6 @@ export function EmpresasScreen() {
   const { go } = useNav()
   const { wide } = useDevice()
   const [busca, setBusca] = useState('')
-  const [ordem, setOrdem] = useState<Ordem>('status')
   const [visao, setVisao] = useState<'confeccoes' | 'pecas'>('confeccoes')
   const [etapaFiltro, setEtapaFiltro] = useState<EtapaPeca | null>(null)
 
@@ -44,11 +42,10 @@ export function EmpresasScreen() {
           !q || empresa.nome.toLowerCase().includes(q) || empresa.cidade.toLowerCase().includes(q),
       )
       .sort((a, b) => {
-        if (ordem === 'nome') return a.empresa.nome.localeCompare(b.empresa.nome)
         return PESO_STATUS[a.resumo.total.nivel] - PESO_STATUS[b.resumo.total.nivel]
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resumos, busca, ordem])
+  }, [resumos, busca])
 
   // Base (sem filtro de etapa): usada para contagens estáveis e para a grade.
   const pecaBase = useMemo(() => {
@@ -65,10 +62,9 @@ export function EmpresasScreen() {
       .filter((item): item is NonNullable<typeof item> => item !== null)
       .filter(({ peca }) => !q || peca.nome.toLowerCase().includes(q))
       .sort((a, b) => {
-        if (ordem === 'nome') return a.peca.nome.localeCompare(b.peca.nome)
         return (a.agg.nivel === 'ok' ? 1 : 0) - (b.agg.nivel === 'ok' ? 1 : 0)
       })
-  }, [pecas, maquinas, producao, busca, ordem])
+  }, [pecas, maquinas, producao, busca])
 
   // Grade filtrada pela etapa selecionada.
   const pecaLista = useMemo(
@@ -132,32 +128,18 @@ export function EmpresasScreen() {
           ))}
         </div>
 
-        {/* Ordenação */}
-        <div className="mb-3 flex items-center gap-2">
-          <span className="text-xs font-semibold text-brand-500">Ordenar por</span>
-          {(['status', 'nome'] as Ordem[]).map((o) => (
-            <button
-              key={o}
-              type="button"
-              onClick={() => setOrdem(o)}
-              className={cx(
-                'rounded-full px-3 py-1 text-xs font-semibold transition',
-                ordem === o ? 'bg-brand-900 text-white' : 'bg-brand-100 text-brand-600 hover:bg-brand-200',
-              )}
-            >
-              {o === 'status' ? 'Situação' : 'Nome'}
-            </button>
-          ))}
-          {visao === 'pecas' && (
+        {/* Botão incluir referência */}
+        {visao === 'pecas' && (
+          <div className="mb-3 flex justify-end">
             <button
               type="button"
-              className="ml-auto flex items-center gap-1.5 rounded-full bg-brand-900 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-brand-700 active:scale-95"
+              className="flex items-center gap-1.5 rounded-full bg-brand-900 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-brand-700 active:scale-95"
             >
               <Plus size={13} />
               Incluir referência
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {visao === 'confeccoes' ? (
           <div className={cx('grid gap-3', wide ? 'grid-cols-2' : 'grid-cols-1')}>
