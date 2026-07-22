@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import type React from 'react'
-import { Bell, Building2, CheckCircle2, Cog, Droplets, Factory, Layers, Package, Ruler, Scissors, Search, Sparkles, TrendingUp, Truck } from 'lucide-react'
+import { Bell, Building2, CalendarDays, Cog, Droplets, Factory, Layers, Package, Plus, Scissors, Search, Sparkles, TrendingUp, Truck } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../nav'
 import { useDevice } from '../components/DeviceFrame'
@@ -8,7 +8,7 @@ import { useEmpresaResumo, type EmpresaResumo } from '../hooks/useEmpresa'
 import { Card, ProgressBar, ProgressRing, StatusBadge } from '../components/ui'
 import { agregarPeca, type DiaAgg } from '../lib/aggregates'
 import { STATUS_TOKENS, getHoraAtualIndex, pct } from '../lib/status'
-import { pecaEstaEmEtapa, qtdPecasNaEtapa } from '../lib/etapas'
+import { pecaEstaEmEtapa, qtdRefsPorEtapa } from '../lib/etapas'
 import { cx, nInt } from '../lib/format'
 import type { Empresa, EtapaPeca, Peca, StatusNivel } from '../types'
 
@@ -17,8 +17,6 @@ type Ordem = 'status' | 'nome'
 const PESO_STATUS: Record<StatusNivel, number> = { bad: 0, warn: 1, ok: 2 }
 
 const ETAPAS: { id: EtapaPeca; label: string; Icon: React.ElementType }[] = [
-  { id: 'aprovada', label: 'Aprovada', Icon: CheckCircle2 },
-  { id: 'medicao', label: 'Medição', Icon: Ruler },
   { id: 'corte', label: 'Corte', Icon: Scissors },
   { id: 'producao', label: 'Produção', Icon: Cog },
   { id: 'acabamento', label: 'Acabamento', Icon: Sparkles },
@@ -89,7 +87,7 @@ export function EmpresasScreen() {
           <div>
             <p className="text-xs font-medium text-brand-400">Bom trabalho hoje 👋</p>
             <h1 className="text-2xl font-extrabold leading-tight text-brand-950">
-              {visao === 'confeccoes' ? 'Minhas confecções' : 'Peças em produção'}
+              {visao === 'confeccoes' ? 'Minhas confecções' : 'Minhas referências'}
             </h1>
           </div>
           <button
@@ -129,7 +127,7 @@ export function EmpresasScreen() {
               {v === 'confeccoes' ? (
                 <><Factory size={14} />Confecções</>
               ) : (
-                <><Layers size={14} />Peças</>
+                <><Layers size={14} />Referências</>
               )}
             </button>
           ))}
@@ -151,6 +149,15 @@ export function EmpresasScreen() {
               {o === 'status' ? 'Situação' : 'Nome'}
             </button>
           ))}
+          {visao === 'pecas' && (
+            <button
+              type="button"
+              className="ml-auto flex items-center gap-1.5 rounded-full bg-brand-900 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-brand-700 active:scale-95"
+            >
+              <Plus size={13} />
+              Incluir referência
+            </button>
+          )}
         </div>
 
         {visao === 'confeccoes' ? (
@@ -216,19 +223,30 @@ function EmpresaCard({ empresa, resumo }: { empresa: Empresa; resumo: EmpresaRes
         </div>
       </div>
 
-      <div className="grid grid-cols-3 divide-x divide-brand-100 border-t border-brand-100 text-center">
-        <Metric icon={<TrendingUp size={14} />} label="Peças / meta">
-          {nInt(resumo.total.realizado)}
-          <span className="text-brand-400"> / {nInt(resumo.total.meta)}</span>
-        </Metric>
-        <Metric icon={<Factory size={14} />} label="Máquinas">
-          {resumo.qtdMaquinasAtivas}
-        </Metric>
-        <Metric label="Alertas">
-          <span className="text-amber-600">{resumo.qtdAmarelas}</span>
-          <span className="text-brand-300"> · </span>
-          <span className="text-red-600">{resumo.qtdVermelhas}</span>
-        </Metric>
+      <div className="flex divide-x divide-brand-100 border-t border-brand-100">
+        {/* Produção de hoje — destacada */}
+        <div className="flex-1 bg-brand-50 px-3 py-2.5">
+          <div className="mb-1.5 flex items-center gap-1">
+            <CalendarDays size={10} className="text-brand-500" />
+            <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand-500">Hoje</span>
+          </div>
+          <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-brand-400">
+            <TrendingUp size={12} />
+            Peças / meta
+          </p>
+          <p className="mt-0.5 text-sm font-bold text-brand-950">
+            {nInt(resumo.total.realizado)}
+            <span className="text-brand-400"> / {nInt(resumo.total.meta)}</span>
+          </p>
+        </div>
+        {/* Máquinas */}
+        <div className="flex flex-col items-center justify-center px-4 py-2.5">
+          <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-brand-400">
+            <Factory size={12} />
+            Máquinas
+          </p>
+          <p className="mt-0.5 text-sm font-bold text-brand-950">{resumo.qtdMaquinasAtivas}</p>
+        </div>
       </div>
     </Card>
   )
@@ -257,7 +275,7 @@ function EtapaTimeline({
 }) {
   // Total de peças (unidades) por etapa — estável, somando todas as OPs.
   const allCounts = ETAPAS.reduce(
-    (acc, e) => ({ ...acc, [e.id]: qtdPecasNaEtapa(pecas, e.id) }),
+    (acc, e) => ({ ...acc, [e.id]: qtdRefsPorEtapa(pecas, e.id) }),
     {} as Record<EtapaPeca, number>,
   )
 
@@ -306,6 +324,54 @@ function EtapaTimeline({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+
+function EntregaBadge({ dataIso }: { dataIso?: string }) {
+  if (!dataIso) return null
+
+  const [y, m, d] = dataIso.split('-').map(Number)
+  const dataEntrega = new Date(y, m - 1, d)
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  const diasRestantes = Math.round((dataEntrega.getTime() - hoje.getTime()) / 86_400_000)
+
+  const dataFormatada = `${d} de ${MESES_CURTOS[m - 1]}. ${y}`
+
+  let cor: string
+  let bgCor: string
+  let label: string
+  if (diasRestantes < 0) {
+    cor = 'text-red-600'
+    bgCor = 'bg-red-50 border-red-200'
+    label = `${Math.abs(diasRestantes)}d de atraso`
+  } else if (diasRestantes <= 7) {
+    cor = 'text-amber-600'
+    bgCor = 'bg-amber-50 border-amber-200'
+    label = diasRestantes === 0 ? 'hoje' : `em ${diasRestantes}d`
+  } else {
+    cor = 'text-emerald-600'
+    bgCor = 'bg-emerald-50 border-emerald-200'
+    label = `em ${diasRestantes}d`
+  }
+
+  return (
+    <div className={cx('flex items-center justify-between rounded-2xl border px-3 py-2', bgCor)}>
+      <div className="flex items-center gap-2">
+        <Truck size={14} className={cor} />
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-400">
+            Previsão de entrega
+          </p>
+          <p className={cx('text-sm font-extrabold leading-tight', cor)}>{dataFormatada}</p>
+        </div>
+      </div>
+      <span className={cx('rounded-full px-2.5 py-1 text-[11px] font-bold', cor, bgCor)}>
+        {label}
+      </span>
     </div>
   )
 }
@@ -378,38 +444,9 @@ function PecaCard({
           </span>
         </div>
 
-        {/* Produção de hoje */}
-        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-brand-400">
-          Produção de hoje
-        </p>
-        <div className="mb-1.5 flex items-baseline gap-1.5">
-          <span className={cx('text-xl font-black leading-none', t.corTexto)}>
-            {nInt(agg.realizado)}
-          </span>
-          <span className="text-sm text-brand-400">/ {nInt(agg.meta)} peças</span>
-          <span className={cx('ml-auto text-sm font-extrabold', t.corTexto)}>
-            {pct(agg.razao)}%
-          </span>
-        </div>
 
-        {/* Progress bar */}
-        <ProgressBar razao={agg.razao} nivel={agg.nivel} className="mb-3" />
-
-        {/* Meta info */}
-        <div className="flex items-center gap-3 text-xs text-brand-400">
-          <span className="flex items-center gap-1">
-            <Building2 size={12} />
-            {qtdEmpresas} {qtdEmpresas === 1 ? 'confecção' : 'confecções'}
-          </span>
-          <span className="text-brand-200">·</span>
-          <span className="flex items-center gap-1">
-            <Factory size={12} />
-            {qtdMaquinas} máq.
-          </span>
-          <span className="ml-auto font-semibold text-brand-500">
-            meta {peca.metaHora} pç/h
-          </span>
-        </div>
+        {/* Previsão de entrega */}
+        <EntregaBadge dataIso={peca.etapas.expedicao?.planejado} />
       </div>
     </div>
   )

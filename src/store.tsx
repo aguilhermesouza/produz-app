@@ -42,6 +42,7 @@ interface StoreValue {
   addMaquina: (m: Omit<Maquina, 'id' | 'codigo'>) => void
   removeMaquina: (id: string) => void
   trocarFuncionario: (maquinaId: string, novoFuncionarioId: string) => void
+  updatePecaMeta: (pecaId: string, metaHora: number) => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -50,6 +51,7 @@ let novaMaquinaSeq = 1000
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [maquinas, setMaquinas] = useState<Maquina[]>(MAQUINAS)
+  const [pecas, setPecas] = useState<Peca[]>(PECAS)
   const [producao, setProducaoState] = useState<ProducaoMap>(PRODUCAO)
   const [incidentes, setIncidentes] = useState<Incidente[]>(INCIDENTES)
 
@@ -61,12 +63,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const pecasDaEmpresa = useCallback(
     (empresaId: string) => {
       const ids = new Set(maquinas.filter((m) => m.empresaId === empresaId).map((m) => m.pecaId))
-      return PECAS.filter((p) => ids.has(p.id))
+      return pecas.filter((p) => ids.has(p.id))
     },
-    [maquinas],
+    [maquinas, pecas],
   )
 
-  const peca = useCallback((pecaId: string) => PECAS.find((p) => p.id === pecaId), [])
+  const peca = useCallback((pecaId: string) => pecas.find((p) => p.id === pecaId), [pecas])
   const operacao = useCallback((id: string) => OPERACOES.find((o) => o.id === id), [])
   const funcionarioNome = useCallback((id: string | null) => {
     if (!id) return 'Sem funcionário'
@@ -152,12 +154,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const updatePecaMeta = useCallback((pecaId: string, metaHora: number) => {
+    setPecas((prev) => prev.map((p) => (p.id === pecaId ? { ...p, metaHora } : p)))
+  }, [])
+
   const value = useMemo<StoreValue>(
     () => ({
       empresas: EMPRESAS,
       funcionarios: FUNCIONARIOS,
       operacoes: OPERACOES,
-      pecas: PECAS,
+      pecas,
       maquinas,
       producao,
       incidentes,
@@ -174,9 +180,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addMaquina,
       removeMaquina,
       trocarFuncionario,
+      updatePecaMeta,
     }),
     [
       maquinas,
+      pecas,
       producao,
       incidentes,
       maquinasDaEmpresa,
@@ -192,6 +200,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addMaquina,
       removeMaquina,
       trocarFuncionario,
+      updatePecaMeta,
     ],
   )
 

@@ -114,3 +114,11 @@ export function qtdPecasNaEtapa(pecas: Peca[], etapa: EtapaPeca): number {
   }
   return pecas.reduce((s, p) => s + (etapaFrente(p) === etapa ? p.quantidadeTotal : 0), 0)
 }
+
+/**
+ * Conta quantas referências (Peca distintas) estão presentes em cada etapa —
+ * independente da quantidade de unidades. Retorna números pequenos (ex: 2, 4, 3).
+ */
+export function qtdRefsPorEtapa(pecas: Peca[], etapa: EtapaPeca): number {
+  return pecas.filter((p) => pecaEstaEmEtapa(p, etapa)).length
+}

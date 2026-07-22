@@ -1,5 +1,5 @@
 import type { Maquina, ProducaoMap, StatusNivel } from '../types'
-import { HORA_ATUAL_INDEX, TOTAL_JANELAS, statusJanela, statusPorRazao } from './status'
+import { HORA_ATUAL_INDEX, TOTAL_JANELAS, statusHora, statusPorRazao } from './status'
 
 export interface HoraAgg {
   index: number
@@ -52,7 +52,7 @@ export function agregarPeca(
       index: h,
       realizado,
       meta: metaHoraPeca,
-      nivel: futura ? null : statusJanela(realizado, metaHoraPeca),
+      nivel: futura ? null : statusHora(realizado, metaHoraPeca),
       futura,
     })
   }
@@ -74,7 +74,8 @@ export function combinarPecas(aggs: DiaAgg[]): DiaAgg {
       const hora = a.horas[h]
       if (!hora) continue
       if (!hora.futura) futura = false
-      if (hora.realizado !== null) {
+      // só acumula horas já fechadas (não futuras)
+      if (!hora.futura && hora.realizado !== null) {
         realizado += hora.realizado
         meta += hora.meta
         temValor = true
@@ -84,7 +85,7 @@ export function combinarPecas(aggs: DiaAgg[]): DiaAgg {
       index: h,
       realizado: temValor ? realizado : null,
       meta,
-      nivel: temValor ? statusPorRazao(meta > 0 ? realizado / meta : 1) : null,
+      nivel: !futura && temValor ? statusHora(realizado, meta) : null,
       futura,
     })
   }

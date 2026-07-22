@@ -1,15 +1,12 @@
-import { useRef, useEffect } from 'react'
+import { useState } from 'react'
 import {
   ArrowLeft,
   Building2,
-  CheckCircle2,
   ChevronRight,
   Cog,
   Droplets,
   Package,
-  Ruler,
   Scissors,
-  Sparkles,
   Truck,
   Wrench,
   TrendingUp,
@@ -21,18 +18,15 @@ import { useDevice } from '../components/DeviceFrame'
 import { agregarPeca } from '../lib/aggregates'
 import { STATUS_TOKENS, getHoraAtualIndex, pct } from '../lib/status'
 import { Card, ProgressBar, ProgressRing, StatusBadge } from '../components/ui'
+import { BottomSheet } from '../components/BottomSheet'
+import { NumericPad } from '../components/NumericPad'
 import { cx, nInt } from '../lib/format'
 import type { EtapaPeca, Peca } from '../types'
 import {
-  ETAPA_ORDER,
   ETAPA_LABEL,
   ETAPA_SHADE,
-  qtdEtapa,
-  pctEtapa,
   etapaFrente,
-  etapaEhProducao,
   wipPorEtapa,
-  estadoEtapa,
 } from '../lib/etapas'
 
 // ---------------------------------------------------------------------------
@@ -44,11 +38,8 @@ const ETAPA_CONFIG: {
   label: string
   Icon: React.ElementType
 }[] = [
-  { id: 'aprovada', label: 'Aprovada', Icon: CheckCircle2 },
-  { id: 'medicao', label: 'Medição', Icon: Ruler },
   { id: 'corte', label: 'Corte', Icon: Scissors },
   { id: 'producao', label: 'Produção', Icon: Cog },
-  { id: 'acabamento', label: 'Acabamento', Icon: Sparkles },
   { id: 'lavanderia', label: 'Lavanderia', Icon: Droplets },
   { id: 'embalagem', label: 'Embalagem', Icon: Package },
   { id: 'expedicao', label: 'Expedição', Icon: Truck },
@@ -64,16 +55,11 @@ function fmtData(iso: string): string {
   return `${d}/${m}`
 }
 
-/** Compara duas datas ISO ('YYYY-MM-DD'). -1 = a antes de b, 0 = igual, 1 = a depois */
-function cmpDatas(a: string, b: string): -1 | 0 | 1 {
-  if (a < b) return -1
-  if (a > b) return 1
-  return 0
-}
-
 // ---------------------------------------------------------------------------
 // JornadaTimeline
 // ---------------------------------------------------------------------------
+
+const ETAPAS_JORNADA: EtapaPeca[] = ['corte', 'producao', 'lavanderia', 'embalagem', 'expedicao']
 
 function iconePorEtapa(etapa: EtapaPeca): React.ElementType {
   return ETAPA_CONFIG.find((e) => e.id === etapa)?.Icon ?? Cog
@@ -81,57 +67,75 @@ function iconePorEtapa(etapa: EtapaPeca): React.ElementType {
 
 function JornadaTimeline({ peca }: { peca: Peca }) {
   const total = peca.quantidadeTotal
-  const frente = etapaFrente(peca)
   const wip = wipPorEtapa(peca)
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const frenteRef = useRef<HTMLDivElement>(null)
 
-  // Centraliza a frente de produção no carrossel ao montar
-  useEffect(() => {
-    const node = frenteRef.current
-    const container = scrollRef.current
-    if (!node || !container) return
-    container.scrollLeft = node.offsetLeft - container.offsetWidth / 2 + node.offsetWidth / 2
-  }, [])
+  // Estado local editável — inicializado a partir dos dados reais da peça
+  const [localWip, setLocalWip] = useState<Record<string, number>>(
+    () => Object.fromEntries(ETAPAS_JORNADA.map((e) => [e, wip[e] ?? 0])),
+  )
+  const [editando, setEditando] = useState<EtapaPeca | null>(null)
+  const [tempVal, setTempVal] = useState('')
 
-  // Segmentos do WIP: etapas onde há peças "paradas" agora
-  const segmentos = ETAPA_ORDER.map((etapa) => ({ etapa, qtd: wip[etapa] })).filter(
+  const totalDistribuido = ETAPAS_JORNADA.reduce((s, e) => s + (localWip[e] ?? 0), 0)
+  const saldo = total - totalDistribuido
+
+  const abrirEditor = (etapa: EtapaPeca) => {
+    setTempVal(localWip[etapa] > 0 ? String(localWip[etapa]) : '')
+    setEditando(etapa)
+  }
+
+  const confirmarEdicao = () => {
+    if (!editando) return
+    setLocalWip((prev) => ({ ...prev, [editando]: Number(tempVal) || 0 }))
+    setEditando(null)
+  }
+
+  const segmentos = ETAPAS_JORNADA.map((e) => ({ etapa: e, qtd: localWip[e] ?? 0 })).filter(
     (s) => s.qtd > 0,
   )
 
-  const ALTURA = 96
-
   return (
     <div>
-      {/* Resumo: total + frente */}
+      {/* Cabeçalho: total + status de distribuição */}
       <div className="mb-3 flex items-end justify-between px-5">
         <div>
           <p className="text-3xl font-black leading-none text-brand-950">{nInt(total)}</p>
           <p className="mt-0.5 text-xs font-medium text-brand-400">peças na ordem</p>
         </div>
         <div className="text-right">
-          <p className="text-sm font-extrabold text-brand-900">{ETAPA_LABEL[frente]}</p>
-          <p className="text-xs font-medium text-brand-400">frente de produção</p>
+          <p
+            className={cx(
+              'text-sm font-extrabold leading-none',
+              saldo === 0 ? 'text-emerald-600' : saldo < 0 ? 'text-red-500' : 'text-brand-400',
+            )}
+          >
+            {saldo === 0
+              ? '✓ totalmente distribuído'
+              : saldo > 0
+              ? `${nInt(saldo)} sem etapa`
+              : `${nInt(Math.abs(saldo))} acima do total`}
+          </p>
+          <p className="mt-0.5 text-xs font-medium text-brand-400">
+            distribuídas: {nInt(totalDistribuido)}
+          </p>
         </div>
       </div>
 
-      {/* Barra de distribuição (onde as peças estão agora) */}
+      {/* Barra de distribuição — reativa às edições */}
       <div className="px-5">
-        <div className="flex h-3.5 w-full overflow-hidden rounded-full bg-brand-100">
+        <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-brand-100">
           {segmentos.map((s) => (
             <div
               key={s.etapa}
-              className={cx('h-full transition-all', ETAPA_SHADE[s.etapa].bg)}
+              className={cx('h-full transition-all duration-500', ETAPA_SHADE[s.etapa].bg)}
               style={{ width: `${(s.qtd / total) * 100}%` }}
-              title={`${ETAPA_LABEL[s.etapa]}: ${s.qtd}`}
             />
           ))}
         </div>
-        {/* Legenda rolável */}
         <div className="no-scrollbar mt-2 flex gap-3 overflow-x-auto pb-0.5">
           {segmentos.map((s) => (
             <div key={s.etapa} className="flex shrink-0 items-center gap-1.5">
-              <span className={cx('h-2.5 w-2.5 shrink-0 rounded-full', ETAPA_SHADE[s.etapa].dot)} />
+              <span className={cx('h-2 w-2 shrink-0 rounded-full', ETAPA_SHADE[s.etapa].dot)} />
               <span className="whitespace-nowrap text-[11px] font-semibold text-brand-600">
                 {ETAPA_LABEL[s.etapa]}
               </span>
@@ -141,153 +145,170 @@ function JornadaTimeline({ peca }: { peca: Peca }) {
         </div>
       </div>
 
-      {/* Carrossel de etapas: colunas de progresso (funil) */}
-      <div ref={scrollRef} className="no-scrollbar mt-5 overflow-x-auto">
-        <div className="flex min-w-max items-start gap-2 px-5">
-          {ETAPA_ORDER.map((etapa) => {
+      {/* Cards horizontais — toque para editar */}
+      <div className="no-scrollbar mt-5 overflow-x-auto">
+        <div className="flex items-stretch px-5 pb-1">
+          {ETAPAS_JORNADA.map((etapa, idx) => {
             const info = peca.etapas?.[etapa]
-            const qtd = qtdEtapa(peca, etapa)
-            const p = pctEtapa(peca, etapa)
-            const estado = estadoEtapa(peca, etapa)
+            const qtd = localWip[etapa] ?? 0
+            const ratio = total > 0 ? qtd / total : 0
+            const concluido = qtd >= total && total > 0
+            const emCurso = !concluido && qtd > 0
             const Icon = iconePorEtapa(etapa)
-            const isFrente = etapa === frente
-            const producao = etapaEhProducao(etapa)
-            const concluido = producao ? estado === 'done' : !!info?.realizado
-            const emCurso = producao ? estado === 'active' : isFrente && !concluido
-            const apagado = producao ? estado === 'todo' : !concluido && !isFrente
-            const fill = estado === 'todo' ? 0 : Math.max(6, Math.round(p * ALTURA))
 
             return (
-              <div
-                key={etapa}
-                ref={isFrente ? frenteRef : undefined}
-                className={cx(
-                  'flex w-[78px] shrink-0 flex-col items-center rounded-2xl px-1.5 pb-2 pt-2 transition',
-                  isFrente ? 'bg-brand-50 ring-1 ring-brand-200' : '',
+              <div key={etapa} className="flex items-center">
+                {/* Conector entre cards */}
+                {idx > 0 && (
+                  <div
+                    className={cx(
+                      'h-[2px] w-3 shrink-0 transition-colors duration-300',
+                      qtd > 0 ? ETAPA_SHADE[etapa].bg : 'bg-brand-200',
+                    )}
+                  />
                 )}
-              >
-                {/* Quantidade acumulada (só produção) */}
-                <span
+
+                {/* Card clicável */}
+                <button
+                  type="button"
+                  onClick={() => abrirEditor(etapa)}
                   className={cx(
-                    'mb-1 text-sm font-black leading-none',
-                    apagado ? 'text-brand-300' : 'text-brand-900',
-                    !producao && 'select-none opacity-0',
+                    'flex w-[108px] shrink-0 flex-col rounded-2xl p-3 text-left transition active:scale-95',
+                    concluido
+                      ? 'bg-brand-800 shadow-lift'
+                      : emCurso
+                      ? 'bg-brand-900 shadow-lift ring-2 ring-brand-400'
+                      : qtd > 0
+                      ? 'bg-white shadow-card hover:shadow-md'
+                      : 'bg-brand-50',
                   )}
                 >
-                  {producao ? nInt(qtd) : '–'}
-                </span>
-
-                {/* Barra de nível (produção) ou marco (aprovada/medição) */}
-                {producao ? (
+                  {/* Ícone */}
                   <div
-                    className="relative w-8 overflow-hidden rounded-full bg-brand-100"
-                    style={{ height: ALTURA }}
+                    className={cx(
+                      'mb-2 flex h-8 w-8 items-center justify-center rounded-xl',
+                      concluido || emCurso ? 'bg-white/15' : 'bg-brand-100',
+                    )}
+                  >
+                    <Icon
+                      size={16}
+                      className={cx(
+                        concluido || emCurso ? 'text-white' : ETAPA_SHADE[etapa].text,
+                      )}
+                    />
+                  </div>
+
+                  {/* Quantidade */}
+                  <p
+                    className={cx(
+                      'text-xl font-black leading-none tabular-nums',
+                      concluido || emCurso ? 'text-white' : qtd > 0 ? 'text-brand-950' : 'text-brand-300',
+                    )}
+                  >
+                    {nInt(qtd)}
+                  </p>
+                  <p
+                    className={cx(
+                      'mt-0.5 text-[10px] font-medium',
+                      concluido || emCurso ? 'text-white/60' : 'text-brand-400',
+                    )}
+                  >
+                    peças
+                  </p>
+
+                  {/* Mini barra de progresso */}
+                  <div
+                    className={cx(
+                      'mt-2.5 h-1 w-full overflow-hidden rounded-full',
+                      concluido || emCurso ? 'bg-white/20' : 'bg-brand-100',
+                    )}
                   >
                     <div
                       className={cx(
-                        'absolute bottom-0 w-full rounded-full transition-all duration-700',
-                        concluido ? 'bg-brand-800' : ETAPA_SHADE[etapa].bg,
+                        'h-full rounded-full transition-all duration-500',
+                        concluido || emCurso ? 'bg-white' : ETAPA_SHADE[etapa].bg,
                       )}
-                      style={{ height: fill }}
+                      style={{ width: `${Math.min(100, ratio * 100)}%` }}
                     />
-                    {concluido && (
-                      <CheckCircle2
-                        size={13}
-                        className="absolute left-1/2 top-1.5 -translate-x-1/2 text-white"
-                      />
-                    )}
                   </div>
-                ) : (
-                  <div className="flex items-center justify-center" style={{ height: ALTURA }}>
-                    <div
-                      className={cx(
-                        'flex h-9 w-9 items-center justify-center rounded-full border-2 transition',
-                        concluido
-                          ? 'border-brand-800 bg-brand-800 text-white'
-                          : isFrente
-                          ? 'border-brand-400 bg-white'
-                          : 'border-brand-200 bg-white',
-                      )}
-                    >
-                      {concluido ? (
-                        <CheckCircle2 size={16} />
-                      ) : (
-                        <span
-                          className={cx(
-                            'h-2.5 w-2.5 rounded-full',
-                            isFrente ? 'bg-brand-400' : 'bg-brand-200',
-                          )}
-                        />
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Percentual (só produção) */}
-                <span
-                  className={cx(
-                    'mt-1 text-[10px] font-bold leading-none',
-                    apagado ? 'text-brand-300' : 'text-brand-500',
-                    !producao && 'select-none opacity-0',
-                  )}
-                >
-                  {producao ? `${Math.round(p * 100)}%` : '–'}
-                </span>
-
-                {/* Ícone + label */}
-                <div className="mt-2 flex flex-col items-center gap-0.5">
-                  <Icon
-                    size={15}
-                    className={
-                      isFrente
-                        ? 'text-brand-900'
-                        : apagado
-                        ? 'text-brand-300'
-                        : 'text-brand-500'
-                    }
-                  />
-                  <span
+                  <p
                     className={cx(
-                      'text-center text-[10px] font-bold leading-tight',
-                      isFrente
-                        ? 'text-brand-900'
-                        : apagado
-                        ? 'text-brand-300'
-                        : 'text-brand-600',
+                      'mt-1 text-[10px] font-bold',
+                      concluido || emCurso ? 'text-white/80' : 'text-brand-500',
+                    )}
+                  >
+                    {Math.round(ratio * 100)}%
+                  </p>
+
+                  {/* Nome da etapa */}
+                  <p
+                    className={cx(
+                      'mt-2.5 text-[11px] font-extrabold leading-tight',
+                      concluido || emCurso ? 'text-white' : qtd > 0 ? 'text-brand-700' : 'text-brand-400',
                     )}
                   >
                     {ETAPA_LABEL[etapa]}
-                  </span>
-                </div>
+                  </p>
 
-                {/* Data (realizada colorida, ou planejada) */}
-                <div className="mt-1 flex min-h-[24px] items-start justify-center">
-                  {info?.realizado ? (
-                    <span
-                      className={cx(
-                        'text-[11px] font-bold leading-tight',
-                        cmpDatas(info.realizado, info.planejado) <= 0
-                          ? 'text-emerald-600'
-                          : 'text-red-500',
-                      )}
-                    >
-                      {fmtData(info.realizado)}
-                    </span>
-                  ) : emCurso ? (
-                    <span className="text-[10px] font-medium italic leading-tight text-brand-400">
-                      em curso
-                    </span>
-                  ) : info?.planejado ? (
-                    <span className="text-[11px] font-medium leading-tight text-brand-400">
-                      {fmtData(info.planejado)}
-                    </span>
-                  ) : null}
-                </div>
+                  {/* Data ou status */}
+                  <p
+                    className={cx(
+                      'mt-0.5 text-[10px] leading-tight',
+                      concluido || emCurso ? 'text-white/60' : 'text-brand-400',
+                    )}
+                  >
+                    {concluido
+                      ? info?.realizado
+                        ? fmtData(info.realizado)
+                        : '✓ concluído'
+                      : emCurso
+                      ? 'em curso'
+                      : info?.planejado
+                      ? fmtData(info.planejado)
+                      : '—'}
+                  </p>
+                </button>
               </div>
             )
           })}
         </div>
       </div>
+
+      <p className="mt-3 px-5 text-[10px] font-medium text-brand-400">
+        Toque em uma etapa para atualizar a quantidade.
+      </p>
+
+      {/* BottomSheet de edição de quantidade */}
+      <BottomSheet
+        open={editando !== null}
+        onClose={() => setEditando(null)}
+        title={editando ? `${ETAPA_LABEL[editando]} — quantidade` : ''}
+      >
+        {editando && (
+          <div>
+            <div className="mb-4 flex items-center justify-between rounded-2xl bg-brand-50 px-4 py-3">
+              <span className="text-sm font-semibold text-brand-500">Total da OP</span>
+              <span className="text-xl font-black text-brand-950">{nInt(total)} pç</span>
+            </div>
+            <div className="mb-4 rounded-2xl bg-brand-900 px-4 py-3 text-center">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">
+                Peças em {ETAPA_LABEL[editando]}
+              </p>
+              <p className="text-4xl font-black tabular-nums text-white">
+                {tempVal !== '' ? nInt(Number(tempVal)) : '0'}
+              </p>
+            </div>
+            <NumericPad value={tempVal} onChange={setTempVal} />
+            <button
+              type="button"
+              onClick={confirmarEdicao}
+              className="mt-4 w-full rounded-2xl bg-brand-900 py-3.5 text-base font-bold text-white shadow-lift transition active:scale-95"
+            >
+              Confirmar
+            </button>
+          </div>
+        )}
+      </BottomSheet>
     </div>
   )
 }
@@ -377,28 +398,7 @@ export function PecaDetalheScreen({ pecaId }: { pecaId: string }) {
         </div>
 
         <div className={cx('px-4 pt-4', wide ? 'grid grid-cols-2 gap-4' : 'flex flex-col gap-4')}>
-          {/* ---- Produção do dia ----------------------------------------- */}
-          <Card className={cx('border-2 p-4', t.borda)}>
-            <div className="mb-3 flex items-center gap-2">
-              <TrendingUp size={15} className="text-brand-500" />
-              <p className="text-xs font-extrabold uppercase tracking-wide text-brand-500">
-                Produção hoje
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <ProgressRing razao={agg.razao} nivel={agg.nivel} size={76} stroke={8}>
-                <span className={cx('text-lg font-black', t.corTexto)}>{pct(agg.razao)}%</span>
-              </ProgressRing>
-              <div className="min-w-0 flex-1">
-                <p className="text-2xl font-black leading-none text-brand-950">
-                  {nInt(agg.realizado)}
-                </p>
-                <p className="mb-2 text-sm text-brand-500">de {nInt(agg.meta)} previstas</p>
-                <StatusBadge nivel={agg.nivel} />
-              </div>
-            </div>
-            <ProgressBar razao={agg.razao} nivel={agg.nivel} className="mt-3" />
-          </Card>
+          
 
           {/* ---- Métricas rápidas ---------------------------------------- */}
           <Card className="p-4">

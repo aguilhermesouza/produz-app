@@ -36,11 +36,21 @@ export function statusPorRazao(razao: number): StatusNivel {
   return 'bad'
 }
 
-/** Status de uma janela isolada (máquina em uma hora). */
+/** Status de uma janela isolada (máquina em uma hora). Binário: atingiu a meta → verde, senão → vermelho. */
 export function statusJanela(realizado: number | null, meta: number): StatusNivel | null {
   if (realizado === null || realizado === undefined) return null
   if (meta <= 0) return 'ok'
-  return statusPorRazao(realizado / meta)
+  return realizado >= meta ? 'ok' : 'bad'
+}
+
+/**
+ * Status binário para fechamento por hora: atingiu a meta → verde, senão → vermelho.
+ * Não existe amarelo no fechamento horário — é tudo ou nada.
+ */
+export function statusHora(realizado: number | null, meta: number): StatusNivel | null {
+  if (realizado === null || realizado === undefined) return null
+  if (meta <= 0) return 'ok'
+  return realizado >= meta ? 'ok' : 'bad'
 }
 
 /**

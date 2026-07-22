@@ -44,7 +44,7 @@ export function HourCell({
           </span>
         </>
       )}
-      {t && <span className={cx('mt-0.5 h-1.5 w-6 rounded-full', t.cor)} />}
+      {!hora.futura && t && <span className={cx('mt-0.5 h-1.5 w-6 rounded-full', t.cor)} />}
       {atual && (
         <span className="absolute -top-1.5 right-1 rounded-full bg-brand-700 px-1.5 text-[9px] font-bold text-white">
           agora

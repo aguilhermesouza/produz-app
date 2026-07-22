@@ -411,7 +411,7 @@ const EMPRESA_FATOR: Record<string, number> = {
   'emp-bela':       1.10, // verde
   'emp-saojose':    1.07, // verde
   'emp-jeansprime': 0.93, // amarelo
-  'emp-flor':       0.76, // vermelho
+  'emp-flor':       0.90, // amarelo
 }
 
 // Fator de desempenho por máquina (uns performam melhor que outros).
@@ -453,12 +453,14 @@ const META_OP: MetaHoraOp = {
 
 for (const empresa of EMPRESAS) {
   const celulas = CELULAS[empresa.id] ?? []
+  let maquinaSeqLocal = 0
   for (const celula of celulas) {
     for (let rep = 0; rep < celula.repeticoes; rep++) {
       for (const opId of celula.operacoes) {
         maquinaSeq += 1
+        maquinaSeqLocal += 1
         const id = `maq-${maquinaSeq}`
-        const codigo = `M-${String(maquinaSeq).padStart(2, '0')}`
+        const codigo = `M-${String(maquinaSeqLocal).padStart(2, '0')}`
         const metaHora = META_OP[celula.pecaId] ?? 60
 
         // Poucas máquinas ficam sem funcionário (para demonstrar o alerta de vínculo).

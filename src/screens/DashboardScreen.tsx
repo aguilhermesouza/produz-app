@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { AlertTriangle, ClipboardList, Settings2, Bell, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ClipboardList, Settings2, Bell, ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../nav'
 import { useDevice } from '../components/DeviceFrame'
 import { useEmpresaResumo } from '../hooks/useEmpresa'
 import { TopBar } from '../components/TopBar'
 import { HourCell } from '../components/HourCell'
+import { BottomSheet } from '../components/BottomSheet'
+import { NumericPad } from '../components/NumericPad'
 import { Card, ProgressBar, ProgressRing, StatusBadge } from '../components/ui'
 import { HORAS, getHoraAtualIndex, STATUS_TOKENS, pct } from '../lib/status'
 import type { DiaAgg } from '../lib/aggregates'
@@ -26,7 +28,7 @@ function isSameDay(a: Date, b: Date) {
 }
 
 export function DashboardScreen({ empresaId }: { empresaId: string }) {
-  const { empresas } = useStore()
+  const { empresas, updatePecaMeta } = useStore()
   const { go } = useNav()
   const { wide } = useDevice()
   const empresa = empresas.find((e) => e.id === empresaId)!
@@ -44,6 +46,8 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
 
   const resumo = useEmpresaResumo(empresaId, horaAtual)
   const [pecaSel, setPecaSel] = useState<string | null>(null)
+  const [editandoMeta, setEditandoMeta] = useState(false)
+  const [metaInput, setMetaInput] = useState('')
 
   const aggAtual: DiaAgg =
     pecaSel === null
@@ -104,7 +108,23 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
               <p className="text-3xl font-black leading-none text-brand-950">
                 {nInt(aggAtual.realizado)}
               </p>
-              <p className="mb-2 text-sm text-brand-500">de {nInt(aggAtual.meta)} peças previstas</p>
+              <p className="mb-2 text-sm text-brand-500">
+                de {nInt(aggAtual.meta)} peças previstas
+                {pecaSel !== null && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const mh = resumo.pecas.find((p) => p.peca.id === pecaSel)?.peca.metaHora ?? 0
+                      setMetaInput(String(mh))
+                      setEditandoMeta(true)
+                    }}
+                    className="ml-2 inline-flex items-center gap-1 rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-600 transition hover:bg-brand-200 active:scale-95"
+                  >
+                    <Pencil size={10} />
+                    editar meta
+                  </button>
+                )}
+              </p>
               <StatusBadge nivel={aggAtual.nivel} />
             </div>
           </div>
@@ -183,22 +203,7 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
           )}
         </div>
 
-        {/* Alertas */}
-        {resumo.qtdAtencao > 0 && (
-          <Card
-            className="mt-4 flex items-center gap-3 border-l-4 border-l-amber-400 p-3"
-            onClick={() => go({ name: 'alertas', empresaId })}
-          >
-            <AlertTriangle className="shrink-0 text-amber-500" size={22} />
-            <div className="flex-1 text-sm">
-              <p className="font-bold text-brand-950">{resumo.qtdAtencao} máquinas precisam de atenção</p>
-              <p className="text-brand-500">
-                {resumo.qtdVermelhas} abaixo da meta · {resumo.qtdAmarelas} em alerta
-              </p>
-            </div>
-            <span className="text-xs font-bold text-brand-600">Ver</span>
-          </Card>
-        )}
+
       </div>
 
       {/* Ação primária fixa */}
@@ -214,6 +219,49 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
           Registrar produção · {horaAtual >= 0 ? HORAS[horaAtual] : '–'}
         </button>
       </div>
+
+      {/* BottomSheet: editar meta por hora */}
+      {pecaSel !== null && (() => {
+        const pecaAtual = resumo.pecas.find((p) => p.peca.id === pecaSel)?.peca
+        return (
+          <BottomSheet
+            open={editandoMeta}
+            onClose={() => setEditandoMeta(false)}
+            title={`Meta · ${pecaAtual?.nome ?? ''}`}
+          >
+            <div className="mb-4 rounded-2xl bg-brand-900 px-4 py-3 text-center">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">
+                Meta por hora
+              </p>
+              <p className="text-4xl font-black tabular-nums text-white">
+                {metaInput || '0'}
+              </p>
+              <p className="mt-0.5 text-xs text-white/50">pç / hora</p>
+            </div>
+            {horaAtual >= 0 && (
+              <div className="mb-4 flex items-center justify-between rounded-2xl bg-brand-50 px-4 py-3">
+                <span className="text-sm font-semibold text-brand-500">Projeção hoje</span>
+                <span className="text-xl font-black text-brand-950">
+                  {nInt((Number(metaInput) || 0) * (horaAtual + 1))}
+                  <span className="ml-1 text-sm font-semibold text-brand-400">pç</span>
+                </span>
+              </div>
+            )}
+            <NumericPad value={metaInput} onChange={setMetaInput} />
+            <button
+              type="button"
+              onClick={() => {
+                const v = Number(metaInput)
+                if (pecaSel && v > 0) updatePecaMeta(pecaSel, v)
+                setEditandoMeta(false)
+              }}
+              className="mt-4 w-full rounded-2xl bg-brand-900 py-3.5 text-base font-bold text-white shadow-lift transition active:scale-95"
+            >
+              Confirmar
+            </button>
+          </BottomSheet>
+        )
+      })()}
     </div>
   )
 }

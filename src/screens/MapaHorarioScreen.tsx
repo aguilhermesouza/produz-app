@@ -102,7 +102,6 @@ export function MapaHorarioScreen({
 
         <div className="mt-3 flex items-center justify-center gap-2">
           <Contador nivel="ok" n={contagem.ok} />
-          <Contador nivel="warn" n={contagem.warn} />
           <Contador nivel="bad" n={contagem.bad} />
         </div>
       </div>
@@ -119,7 +118,7 @@ export function MapaHorarioScreen({
             {compact ? <List size={15} /> : <LayoutGrid size={15} />}
             {compact ? 'Lista' : 'Grade'}
           </button>
-          {(['ok', 'warn', 'bad'] as StatusNivel[]).map((s) => (
+          {(['ok', 'bad'] as StatusNivel[]).map((s) => (
             <Chip key={s} active={filtroStatus === s} onClick={() => setFiltroStatus((v) => (v === s ? null : s))}>
               {STATUS_TOKENS[s].texto}
             </Chip>
