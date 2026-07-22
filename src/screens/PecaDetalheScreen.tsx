@@ -7,9 +7,9 @@ import {
   Droplets,
   Package,
   Scissors,
+  Timer,
   Truck,
   Wrench,
-  Clock,
 } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../nav'
@@ -403,32 +403,23 @@ export function PecaDetalheScreen({ pecaId }: { pecaId: string }) {
         <div className={cx('px-4 pt-4', wide ? 'grid grid-cols-2 gap-4' : 'flex flex-col gap-4')}>
           
 
-          {/* ---- Métricas rápidas ---------------------------------------- */}
-          <Card className="p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <Clock size={15} className="text-brand-500" />
-              <p className="text-xs font-extrabold uppercase tracking-wide text-brand-500">
-                Métricas
+          {/* ---- Estudo de Tempos --------------------------------------- */}
+          <button
+            type="button"
+            onClick={() => go({ name: 'cronometragem', pecaId })}
+            className="flex w-full items-center gap-4 rounded-2xl border-2 border-brand-100 bg-white p-4 text-left shadow-sm transition hover:border-brand-300 hover:shadow-md active:scale-[0.98]"
+          >
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-900">
+              <Timer size={22} className="text-white" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-extrabold text-brand-950">Estudo de Tempos</p>
+              <p className="mt-0.5 text-xs text-brand-400">
+                Cronometrar operações e calcular meta/hora
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Metric label="Meta/hora" value={`${peca.metaHora} pç`} />
-              <Metric label="Máquinas" value={String(maqDaPeca.length)} />
-              <Metric label="Confecções" value={String(empresasDaPeca.length)} />
-              <Metric
-                label="Melhor hora"
-                value={
-                  agg.horas
-                    .filter((h) => !h.futura && h.realizado !== null)
-                    .reduce(
-                      (best, h) => (h.realizado! > best ? h.realizado! : best),
-                      0,
-                    )
-                    .toString() + ' pç'
-                }
-              />
-            </div>
-          </Card>
+            <ChevronRight size={18} className="shrink-0 text-brand-300" />
+          </button>
 
           {/* ---- Confecções que produzem ---------------------------------- */}
           {empresasDaPeca.length > 0 && (
@@ -477,11 +468,4 @@ export function PecaDetalheScreen({ pecaId }: { pecaId: string }) {
 // Helpers internos
 // ---------------------------------------------------------------------------
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl bg-brand-50 px-3 py-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-400">{label}</p>
-      <p className="mt-0.5 text-base font-extrabold text-brand-900">{value}</p>
-    </div>
-  )
-}
+// (sem helpers)

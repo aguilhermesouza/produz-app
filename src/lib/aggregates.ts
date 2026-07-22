@@ -67,25 +67,28 @@ export function combinarPecas(aggs: DiaAgg[]): DiaAgg {
   const horas: HoraAgg[] = []
   for (let h = 0; h < TOTAL_JANELAS; h++) {
     let realizado = 0
-    let meta = 0
+    let metaRealizado = 0   // meta apenas das horas fechadas (para o status)
+    let metaTotal = 0       // meta de todas as horas (passadas e futuras)
     let temValor = false
     let futura = true
     for (const a of aggs) {
       const hora = a.horas[h]
       if (!hora) continue
       if (!hora.futura) futura = false
-      // só acumula horas já fechadas (não futuras)
+      // acumula meta para TODAS as horas (exibir na célula)
+      metaTotal += hora.meta
+      // só acumula realizado de horas já fechadas
       if (!hora.futura && hora.realizado !== null) {
         realizado += hora.realizado
-        meta += hora.meta
+        metaRealizado += hora.meta
         temValor = true
       }
     }
     horas.push({
       index: h,
       realizado: temValor ? realizado : null,
-      meta,
-      nivel: !futura && temValor ? statusHora(realizado, meta) : null,
+      meta: metaTotal,
+      nivel: !futura && temValor ? statusHora(realizado, metaRealizado) : null,
       futura,
     })
   }

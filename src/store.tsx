@@ -43,8 +43,6 @@ interface StoreValue {
   removeMaquina: (id: string) => void
   trocarFuncionario: (maquinaId: string, novoFuncionarioId: string) => void
   updatePecaMeta: (pecaId: string, metaHora: number) => void
-  realizadoDia: Record<string, number>
-  updateRealizadoDia: (pecaId: string, total: number) => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -160,11 +158,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setPecas((prev) => prev.map((p) => (p.id === pecaId ? { ...p, metaHora } : p)))
   }, [])
 
-  const [realizadoDia, setRealizadoDia] = useState<Record<string, number>>({})
-  const updateRealizadoDia = useCallback((pecaId: string, total: number) => {
-    setRealizadoDia((prev) => ({ ...prev, [pecaId]: total }))
-  }, [])
-
   const value = useMemo<StoreValue>(
     () => ({
       empresas: EMPRESAS,
@@ -188,15 +181,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeMaquina,
       trocarFuncionario,
       updatePecaMeta,
-      realizadoDia,
-      updateRealizadoDia,
     }),
     [
       maquinas,
       pecas,
       producao,
       incidentes,
-      realizadoDia,
       maquinasDaEmpresa,
       pecasDaEmpresa,
       peca,
@@ -211,7 +201,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeMaquina,
       trocarFuncionario,
       updatePecaMeta,
-      updateRealizadoDia,
     ],
   )
 

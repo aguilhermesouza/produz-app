@@ -9,6 +9,7 @@ import { RegistroScreen } from './screens/RegistroScreen'
 import { ConfigMaquinasScreen } from './screens/ConfigMaquinasScreen'
 import { AlertasScreen } from './screens/AlertasScreen'
 import { PecaDetalheScreen } from './screens/PecaDetalheScreen'
+import { CronometragemScreen } from './screens/CronometragemScreen'
 
 function Router() {
   const { current } = useNav()
@@ -40,6 +41,8 @@ function Router() {
       return <AlertasScreen empresaId={current.empresaId} />
     case 'peca':
       return <PecaDetalheScreen pecaId={current.pecaId} />
+    case 'cronometragem':
+      return <CronometragemScreen pecaId={current.pecaId} />
   }
 }
 

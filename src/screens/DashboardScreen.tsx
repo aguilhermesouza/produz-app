@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { ClipboardList, Settings2, Bell, ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
+import { ClipboardList, Settings2, Bell, ChevronLeft, ChevronRight, LayoutGrid, TrendingUp, TrendingDown, Target } from 'lucide-react'
 import { useStore } from '../store'
 import { useNav } from '../nav'
 import { useDevice } from '../components/DeviceFrame'
@@ -8,8 +8,8 @@ import { TopBar } from '../components/TopBar'
 import { HourCell } from '../components/HourCell'
 import { BottomSheet } from '../components/BottomSheet'
 import { NumericPad } from '../components/NumericPad'
-import { Card, ProgressBar, ProgressRing, StatusBadge } from '../components/ui'
-import { HORAS, getHoraAtualIndex, STATUS_TOKENS, pct, statusPorRazao } from '../lib/status'
+import { Card, ProgressBar, ProgressRing } from '../components/ui'
+import { HORAS, getHoraAtualIndex, STATUS_TOKENS, pct } from '../lib/status'
 import type { DiaAgg } from '../lib/aggregates'
 import { cx, nInt } from '../lib/format'
 
@@ -28,7 +28,7 @@ function isSameDay(a: Date, b: Date) {
 }
 
 export function DashboardScreen({ empresaId }: { empresaId: string }) {
-  const { empresas, updatePecaMeta, realizadoDia, updateRealizadoDia } = useStore()
+  const { empresas, updatePecaMeta, maquinas, setProducao } = useStore()
   const { go } = useNav()
   const { wide } = useDevice()
   const empresa = empresas.find((e) => e.id === empresaId)!
@@ -38,35 +38,72 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
     d.setHours(0, 0, 0, 0)
     return d
   })
+
+  // DEV: simulação de horário (nunca chega ao bundle de produção)
+  const [devHoraOverride, setDevHoraOverride] = useState<number | null>(null)
+
   const horaAtual = useMemo(() => {
+    if (import.meta.env.DEV && devHoraOverride !== null) return devHoraOverride
     const hoje = new Date()
     hoje.setHours(0, 0, 0, 0)
     return isSameDay(selectedDate, hoje) ? getHoraAtualIndex() : HORAS.length - 1
-  }, [selectedDate])
+  }, [selectedDate, devHoraOverride])
 
   const resumo = useEmpresaResumo(empresaId, horaAtual)
   const [pecaSel, setPecaSel] = useState<string | null>(null)
-  const [editandoMeta, setEditandoMeta] = useState(false)
-  const [metaInput, setMetaInput] = useState('')
-  const [editandoRealizado, setEditandoRealizado] = useState(false)
-  const [realizadoInput, setRealizadoInput] = useState('')
+  const [editandoHora, setEditandoHora] = useState<number | null>(null)
+  const [modoEdicao, setModoEdicao] = useState<'produzido' | 'meta'>('produzido')
+  const [inputHora, setInputHora] = useState('')
 
   const aggAtual: DiaAgg =
     pecaSel === null
       ? resumo.total
       : resumo.pecas.find((p) => p.peca.id === pecaSel)?.agg ?? resumo.total
 
-  // Override manual do realizado (se o usuário atualizou manualmente)
-  const realizadoManual = pecaSel !== null ? realizadoDia[pecaSel] : undefined
-  const realizadoExibido = realizadoManual ?? aggAtual.realizado
-  const razaoExibida = aggAtual.meta > 0 ? realizadoExibido / aggAtual.meta : 1
-  const nivelExibido = statusPorRazao(razaoExibida)
-
-  const t = STATUS_TOKENS[pecaSel !== null ? nivelExibido : aggAtual.nivel]
+  const t = STATUS_TOKENS[aggAtual.nivel]
   const multiPeca = resumo.pecas.length > 1
+
+  const maquinasPecaSel = maquinas.filter(
+    (m) => m.empresaId === empresaId && m.pecaId === pecaSel && m.ativa,
+  )
+
+  const abrirEdicaoHora = (h: number) => {
+    const realized = aggAtual.horas[h]?.realizado ?? 0
+    setInputHora(realized > 0 ? String(realized) : '')
+    setModoEdicao('produzido')
+    setEditandoHora(h)
+  }
+
+  const abrirMetaHora = (h: number, explicitPecaId?: string) => {
+    // usa a peça explícita, a selecionada ou a primeira disponível
+    const pid = explicitPecaId ?? pecaSel ?? resumo.pecas[0]?.peca.id ?? null
+    const metaH = pid
+      ? (resumo.pecas.find((p) => p.peca.id === pid)?.peca.metaHora ?? 0)
+      : 0
+    setInputHora(metaH > 0 ? String(metaH) : '')
+    setModoEdicao('meta')
+    setEditandoHora(h)
+    if (pid && pid !== pecaSel) setPecaSel(pid)
+  }
+
+  const trocarModo = (modo: 'produzido' | 'meta') => {
+    if (modo === 'produzido') {
+      const realized = editandoHora !== null ? (aggAtual.horas[editandoHora]?.realizado ?? 0) : 0
+      setInputHora(realized > 0 ? String(realized) : '')
+    } else {
+      const metaH = resumo.pecas.find((p) => p.peca.id === pecaSel)?.peca.metaHora ?? 0
+      setInputHora(String(metaH))
+    }
+    setModoEdicao(modo)
+  }
 
   const abrirHora = (h: number) =>
     go({ name: 'mapa', empresaId, hourIndex: h, pecaId: pecaSel ?? undefined })
+
+  // Métricas derivadas
+  const metaTotalDia = aggAtual.horas.reduce((sum, h) => sum + h.meta, 0)
+  const delta = aggAtual.realizado - aggAtual.meta
+  const razaoTotalDia = metaTotalDia > 0 ? aggAtual.realizado / metaTotalDia : 0
 
   return (
     <div className="flex h-full flex-col">
@@ -101,55 +138,162 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
 
       <DateStrip date={selectedDate} onChange={(d) => { setSelectedDate(d); setPecaSel(null) }} />
 
-      <div className="thin-scroll flex-1 overflow-y-auto px-4 pb-28 pt-4">
-        {/* Painel da meta do dia */}
-        <Card className={cx('mb-4 border-2 p-4', t.borda)}>
-          <div className="flex items-center gap-4">
-            <ProgressRing razao={pecaSel !== null ? razaoExibida : aggAtual.razao} nivel={pecaSel !== null ? nivelExibido : aggAtual.nivel} size={92} stroke={10}>
-              <span className={cx('text-xl font-black', t.corTexto)}>{pct(aggAtual.razao)}%</span>
-              <span className="text-[10px] font-semibold text-brand-400">da meta</span>
-            </ProgressRing>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-brand-400">
-                {pecaSel === null ? 'Total do dia' : 'Peça selecionada'}
-              </p>
-              <p className="text-3xl font-black leading-none text-brand-950">
-                {nInt(pecaSel !== null ? realizadoExibido : aggAtual.realizado)}
-              </p>
-              {pecaSel !== null && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRealizadoInput(String(realizadoExibido))
-                    setEditandoRealizado(true)
-                  }}
-                  className="-mt-0.5 mb-1 inline-flex items-center gap-1 rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-600 transition hover:bg-brand-200 active:scale-95"
-                >
-                  <Pencil size={10} />
-                  editar produzido
-                </button>
+      {/* ---- DEV: seletor de hora simulada -------------------------------- */}
+      {import.meta.env.DEV && (
+        <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-3 py-1.5">
+          <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-amber-600">
+            ⏰ Apenas para simular comportamento variando horários -- 
+          </span>
+          <div className="no-scrollbar flex flex-1 gap-1 overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => setDevHoraOverride(null)}
+              className={cx(
+                'shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition',
+                devHoraOverride === null
+                  ? 'bg-amber-500 text-white'
+                  : 'text-amber-600 hover:bg-amber-100',
               )}
-              <p className="mb-2 text-sm text-brand-500">
-                de {nInt(aggAtual.meta)} peças previstas
-                {pecaSel !== null && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const mh = resumo.pecas.find((p) => p.peca.id === pecaSel)?.peca.metaHora ?? 0
-                      setMetaInput(String(mh))
-                      setEditandoMeta(true)
-                    }}
-                    className="ml-2 inline-flex items-center gap-1 rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-600 transition hover:bg-brand-200 active:scale-95"
-                  >
-                    <Pencil size={10} />
-                    editar meta
-                  </button>
+            >
+              Real
+            </button>
+            {HORAS.map((h, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setDevHoraOverride(i)}
+                className={cx(
+                  'shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition',
+                  devHoraOverride === i
+                    ? 'bg-amber-500 text-white'
+                    : 'text-amber-600 hover:bg-amber-100',
                 )}
+              >
+                {h}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="thin-scroll flex-1 overflow-y-auto px-4 pb-28 pt-4">
+        {/* Desempenho acumulado */}
+        <Card className={cx('mb-3 border-2 p-4', t.borda)}>
+          {/* Cabeçalho */}
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-brand-400">
+            {pecaSel === null ? 'Desempenho acumulado' : 'Peça selecionada'}
+          </p>
+
+          <div className="flex items-center gap-4">
+            <ProgressRing razao={aggAtual.razao} nivel={aggAtual.nivel} size={88} stroke={10}>
+              <span className={cx('text-xl font-black', t.corTexto)}>{pct(aggAtual.razao)}%</span>
+              <span className="text-[10px] font-semibold text-brand-400">até agora</span>
+            </ProgressRing>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-3xl font-black leading-none text-brand-950">
+                {nInt(aggAtual.realizado)}
               </p>
-              <StatusBadge nivel={pecaSel !== null ? nivelExibido : aggAtual.nivel} />
+              <p className="mb-3 mt-0.5 text-xs text-brand-400">
+                de {nInt(aggAtual.meta)} esperadas até agora
+              </p>
+
+              {/* Delta — insight de compensação */}
+              {aggAtual.meta > 0 && (
+                <div
+                  className={cx(
+                    'inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5',
+                    delta > 0
+                      ? 'bg-green-50'
+                      : delta < 0
+                        ? 'bg-red-50'
+                        : 'bg-brand-100',
+                  )}
+                >
+                  {delta > 0 ? (
+                    <TrendingUp size={13} className="shrink-0 text-green-600" />
+                  ) : delta < 0 ? (
+                    <TrendingDown size={13} className="shrink-0 text-red-500" />
+                  ) : null}
+                  <span
+                    className={cx(
+                      'text-sm font-black tabular-nums',
+                      delta > 0
+                        ? 'text-green-700'
+                        : delta < 0
+                          ? 'text-red-600'
+                          : 'text-brand-600',
+                    )}
+                  >
+                    {delta > 0 ? `+${nInt(delta)}` : nInt(delta)}
+                  </span>
+                  <span
+                    className={cx(
+                      'text-[11px] font-bold',
+                      delta > 0
+                        ? 'text-green-600'
+                        : delta < 0
+                          ? 'text-red-500'
+                          : 'text-brand-500',
+                    )}
+                  >
+                    {delta > 0 ? 'adiantado' : delta < 0 ? 'atrasado' : 'na meta'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
+
           <ProgressBar razao={aggAtual.razao} nivel={aggAtual.nivel} className="mt-4" />
+        </Card>
+
+        {/* Meta do dia — card isolado */}
+        <Card className="mb-4 flex items-center gap-4 p-4">
+          <div
+            className={cx(
+              'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
+              razaoTotalDia >= 1
+                ? 'bg-green-100'
+                : razaoTotalDia >= 0.5
+                  ? 'bg-brand-100'
+                  : 'bg-brand-50',
+            )}
+          >
+            <Target
+              size={20}
+              className={cx(
+                razaoTotalDia >= 1
+                  ? 'text-green-600'
+                  : razaoTotalDia >= 0.5
+                    ? 'text-brand-600'
+                    : 'text-brand-400',
+              )}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-brand-400">
+              Meta do dia
+            </p>
+            <p className="text-xl font-black leading-tight text-brand-950">
+              {nInt(metaTotalDia)}
+              <span className="ml-1 text-sm font-semibold text-brand-400">peças</span>
+            </p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p
+              className={cx(
+                'text-2xl font-black tabular-nums',
+                razaoTotalDia >= 1
+                  ? 'text-green-600'
+                  : razaoTotalDia >= 0.5
+                    ? 'text-brand-700'
+                    : 'text-brand-400',
+              )}
+            >
+              {pct(razaoTotalDia)}%
+            </p>
+            <p className="text-[10px] font-semibold text-brand-400">do dia total</p>
+          </div>
         </Card>
 
         {/* Abas por peça */}
@@ -180,12 +324,27 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
               label={HORAS[h.index]}
               atual={h.index === horaAtual}
               selecionado={h.index === horaAtual}
-              onClick={() => abrirHora(h.index)}
+              onClick={() => {
+                const isFutura = h.index > horaAtual
+                if (isFutura) {
+                  // hora futura → sempre abre editor de meta
+                  // (auto-seleciona a peça se nenhuma estiver selecionada)
+                  abrirMetaHora(h.index)
+                } else if (pecaSel !== null) {
+                  // hora passada com peça selecionada → editar produzido
+                  abrirEdicaoHora(h.index)
+                } else {
+                  // hora passada sem peça selecionada → vai para mapa
+                  abrirHora(h.index)
+                }
+              }}
             />
           ))}
         </div>
         <p className="mb-4 text-xs text-brand-400">
-          Toque em um horário para ver o mapa de máquinas daquele fechamento.
+          {pecaSel !== null
+            ? 'Toque em uma hora passada para lançar produzido · horas futuras permitem definir a meta.'
+            : 'Selecione uma peça para lançar produção por hora.'}
         </p>
 
         {/* Peças em produção */}
@@ -241,86 +400,112 @@ export function DashboardScreen({ empresaId }: { empresaId: string }) {
         </button>
       </div>
 
-      {/* BottomSheet: editar meta por hora */}
-      {pecaSel !== null && (() => {
+      {/* BottomSheet: lançar produzido / editar meta por hora */}
+      {editandoHora !== null && pecaSel !== null && (() => {
         const pecaAtual = resumo.pecas.find((p) => p.peca.id === pecaSel)?.peca
+        const metaHoraPeca = pecaAtual?.metaHora ?? 0
+        const metaTotalJanela = metaHoraPeca * maquinasPecaSel.length
+        const horaLabel = HORAS[editandoHora]
         return (
           <BottomSheet
-            open={editandoMeta}
-            onClose={() => setEditandoMeta(false)}
-            title={`Meta · ${pecaAtual?.nome ?? ''}`}
+            open={editandoHora !== null}
+            onClose={() => setEditandoHora(null)}
+            title={`${horaLabel} · ${pecaAtual?.nome ?? ''}`}
           >
-            <div className="mb-4 rounded-2xl bg-brand-900 px-4 py-3 text-center">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">
-                Meta por hora
-              </p>
-              <p className="text-4xl font-black tabular-nums text-white">
-                {metaInput || '0'}
-              </p>
-              <p className="mt-0.5 text-xs text-white/50">pç / hora</p>
-            </div>
-            {horaAtual >= 0 && (
-              <div className="mb-4 flex items-center justify-between rounded-2xl bg-brand-50 px-4 py-3">
-                <span className="text-sm font-semibold text-brand-500">Projeção hoje</span>
-                <span className="text-xl font-black text-brand-950">
-                  {nInt((Number(metaInput) || 0) * (horaAtual + 1))}
-                  <span className="ml-1 text-sm font-semibold text-brand-400">pç</span>
+            {/* Tabs modo — oculta "Produzido" para horas futuras */}
+            {editandoHora !== null && !aggAtual.horas[editandoHora]?.futura && (
+              <div className="mb-4 flex rounded-2xl bg-brand-100 p-1">
+                {(['produzido', 'meta'] as const).map((modo) => (
+                  <button
+                    key={modo}
+                    type="button"
+                    onClick={() => trocarModo(modo)}
+                    className={cx(
+                      'flex-1 rounded-xl py-2 text-sm font-bold transition',
+                      modoEdicao === modo
+                        ? 'bg-white text-brand-950 shadow-sm'
+                        : 'text-brand-500 hover:text-brand-700',
+                    )}
+                  >
+                    {modo === 'produzido' ? 'Produzido' : 'Meta / hora'}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {editandoHora !== null && aggAtual.horas[editandoHora]?.futura && (
+              <div className="mb-4 flex items-center gap-2 rounded-2xl bg-amber-50 px-3 py-2">
+                <span className="text-[11px] font-semibold text-amber-700">
+                  Hora futura — apenas a meta pode ser definida agora.
                 </span>
               </div>
             )}
-            <NumericPad value={metaInput} onChange={setMetaInput} />
-            <button
-              type="button"
-              onClick={() => {
-                const v = Number(metaInput)
-                if (pecaSel && v > 0) updatePecaMeta(pecaSel, v)
-                setEditandoMeta(false)
-              }}
-              className="mt-4 w-full rounded-2xl bg-brand-900 py-3.5 text-base font-bold text-white shadow-lift transition active:scale-95"
-            >
-              Confirmar
-            </button>
-          </BottomSheet>
-        )
-      })()}
 
-      {/* BottomSheet: editar total produzido */}
-      {pecaSel !== null && (() => {
-        const pecaAtual = resumo.pecas.find((p) => p.peca.id === pecaSel)?.peca
-        return (
-          <BottomSheet
-            open={editandoRealizado}
-            onClose={() => setEditandoRealizado(false)}
-            title={`Produzido · ${pecaAtual?.nome ?? ''}`}
-          >
+            {/* Display grande */}
             <div className="mb-4 rounded-2xl bg-brand-900 px-4 py-3 text-center">
               <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">
-                Total produzido hoje
+                {modoEdicao === 'produzido' ? 'Peças produzidas na janela' : 'Meta por hora / máquina'}
               </p>
               <p className="text-4xl font-black tabular-nums text-white">
-                {realizadoInput || '0'}
+                {inputHora || '0'}
               </p>
-              <p className="mt-0.5 text-xs text-white/50">peças</p>
+              <p className="mt-0.5 text-xs text-white/50">
+                {modoEdicao === 'produzido' ? 'pç' : 'pç / h'}
+              </p>
             </div>
+
+            {/* Linha de contexto */}
             <div className="mb-4 flex items-center justify-between rounded-2xl bg-brand-50 px-4 py-3">
-              <span className="text-sm font-semibold text-brand-500">Meta do dia</span>
-              <span className="text-xl font-black text-brand-950">
-                {nInt(aggAtual.meta)}
-                <span className="ml-1 text-sm font-semibold text-brand-400">pç</span>
-              </span>
+              {modoEdicao === 'produzido' ? (
+                <>
+                  <span className="text-sm font-semibold text-brand-500">Meta da janela</span>
+                  <span className="text-xl font-black text-brand-950">
+                    {nInt(metaTotalJanela)}
+                    <span className="ml-1 text-sm font-semibold text-brand-400">pç</span>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-sm font-semibold text-brand-500">Total esperado / janela</span>
+                  <span className="text-xl font-black text-brand-950">
+                    {nInt((Number(inputHora) || 0) * maquinasPecaSel.length)}
+                    <span className="ml-1 text-sm font-semibold text-brand-400">pç</span>
+                  </span>
+                </>
+              )}
             </div>
-            <NumericPad value={realizadoInput} onChange={setRealizadoInput} />
-            <button
-              type="button"
-              onClick={() => {
-                const v = Number(realizadoInput)
-                if (pecaSel && v >= 0) updateRealizadoDia(pecaSel, v)
-                setEditandoRealizado(false)
-              }}
-              className="mt-4 w-full rounded-2xl bg-brand-900 py-3.5 text-base font-bold text-white shadow-lift transition active:scale-95"
-            >
-              Confirmar
-            </button>
+
+            <NumericPad value={inputHora} onChange={setInputHora} />
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditandoHora(null)
+                  abrirHora(editandoHora)
+                }}
+                className="flex items-center gap-1.5 rounded-2xl border-2 border-brand-200 px-4 py-3 text-sm font-bold text-brand-700 transition hover:bg-brand-50 active:scale-95"
+              >
+                <LayoutGrid size={16} />
+                Máquinas
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const v = Number(inputHora)
+                  if (modoEdicao === 'produzido' && v >= 0 && maquinasPecaSel.length > 0) {
+                    const porMaquina = Math.round(v / maquinasPecaSel.length)
+                    maquinasPecaSel.forEach((m) => setProducao(m.id, editandoHora, porMaquina))
+                  } else if (modoEdicao === 'meta' && v > 0 && pecaSel) {
+                    updatePecaMeta(pecaSel, v)
+                  }
+                  setEditandoHora(null)
+                }}
+                className="flex-1 rounded-2xl bg-brand-900 py-3 text-base font-bold text-white shadow-lift transition active:scale-95"
+              >
+                Confirmar
+              </button>
+            </div>
           </BottomSheet>
         )
       })()}

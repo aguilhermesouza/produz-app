@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Check, KeyboardIcon, ListChecks, SkipForward } from 'lucide-react'
+import { AlertTriangle, Check, KeyboardIcon, ListChecks, Plus, SkipForward, X } from 'lucide-react'
 import { useStore } from '../store'
 import { useDevice } from '../components/DeviceFrame'
 import { TopBar } from '../components/TopBar'
 import { NumericPad } from '../components/NumericPad'
-import { StatusBadge } from '../components/ui'
 import { IncidenteSheet } from './IncidenteSheet'
 import { useToast } from '../components/Toast'
 import { HORAS, STATUS_TOKENS, statusJanela } from '../lib/status'
-import { cx, nInt } from '../lib/format'
+import { cx } from '../lib/format'
 import type { Maquina } from '../types'
 
 type Modo = 'percorrer' | 'lista'
+type ExtraOp = { id: string; operacaoId: string }
+type FieldValues = Record<string, { meta: string; realizado: string }>
+type ActiveField = { id: string; campo: 'meta' | 'realizado' } | null
 
 export function RegistroScreen({
   empresaId,
@@ -24,7 +26,7 @@ export function RegistroScreen({
   pecaId?: string
   maquinaId?: string
 }) {
-  const { empresas, maquinasDaEmpresa, producao, operacao, funcionarioNome, setProducao } = useStore()
+  const { empresas, maquinasDaEmpresa, producao, operacao, operacoes, funcionarioNome, setProducao } = useStore()
   const { wide } = useDevice()
   const toast = useToast()
   const empresa = empresas.find((e) => e.id === empresaId)!
@@ -40,30 +42,51 @@ export function RegistroScreen({
   const [modo, setModo] = useState<Modo>('percorrer')
   const startIdx = Math.max(0, maquinaId ? maquinas.findIndex((m) => m.id === maquinaId) : 0)
   const [cursor, setCursor] = useState(startIdx)
-  const [valor, setValor] = useState('')
   const [incMaquina, setIncMaquina] = useState<Maquina | null>(null)
+  const [extrasMap, setExtrasMap] = useState<Record<string, ExtraOp[]>>({})
+  const [fieldValues, setFieldValues] = useState<FieldValues>({})
+  const [activeField, setActiveField] = useState<ActiveField>(null)
+  const [numpadValue, setNumpadValue] = useState('')
+
+  // Foca um campo e reinicia o NumericPad vazio (sobreescreve ao digitar)
+  const focusField = (field: ActiveField) => {
+    setActiveField(field)
+    setNumpadValue('')
+  }
 
   const atual = maquinas[cursor]
+  const mainKey = atual ? `main-${atual.id}` : ''
+  const extras = extrasMap[atual?.id ?? ''] ?? []
+  const setExtras = (ops: ExtraOp[]) =>
+    setExtrasMap((prev) => ({ ...prev, [atual?.id ?? '']: ops }))
 
-  // Carrega o valor já registrado ao trocar de máquina.
+  // Re-inicializa campos ao trocar de máquina
   useEffect(() => {
     if (!atual) return
     const v = producao[atual.id]?.[hourIndex]
-    setValor(v !== null && v !== undefined ? String(v) : '')
-  }, [cursor, atual, producao, hourIndex])
+    setFieldValues((prev) => ({
+      ...prev,
+      [`main-${atual.id}`]: {
+        meta: String(atual.metaHora),
+        realizado: v !== null && v !== undefined ? String(v) : '',
+      },
+    }))
+    setActiveField(null)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cursor, hourIndex])
 
   const preenchidas = maquinas.filter(
     (m) => producao[m.id]?.[hourIndex] !== null && producao[m.id]?.[hourIndex] !== undefined,
   ).length
 
+  const mainRealizado = fieldValues[mainKey]?.realizado ?? ''
+
   const salvarEProximo = () => {
     if (!atual) return
-    setProducao(atual.id, hourIndex, valor === '' ? null : Number(valor))
+    setProducao(atual.id, hourIndex, mainRealizado === '' ? null : Number(mainRealizado))
     toast(`${atual.codigo} salvo`)
     if (cursor < maquinas.length - 1) setCursor((c) => c + 1)
   }
-
-  const nivelAtual = atual ? statusJanela(valor === '' ? null : Number(valor), atual.metaHora) : null
 
   return (
     <div className="flex h-full flex-col">
@@ -110,33 +133,35 @@ export function RegistroScreen({
                     Máquina {cursor + 1} de {maquinas.length}
                   </p>
                   <h2 className="text-2xl font-black text-brand-950">{atual.codigo}</h2>
-                  <p className="text-sm font-medium text-brand-600">{operacao(atual.operacaoId)?.nome}</p>
                   <p className="text-xs text-brand-400">{funcionarioNome(atual.funcionarioId)}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-brand-400">meta/hora</p>
-                  <p className="text-2xl font-black text-brand-700">{atual.metaHora}</p>
-                </div>
               </div>
 
-              {/* Display do valor + status ao vivo */}
-              <div
-                className={cx(
-                  'mb-3 flex items-center justify-between rounded-2xl border-2 px-5 py-4',
-                  nivelAtual ? cx(STATUS_TOKENS[nivelAtual].bg, STATUS_TOKENS[nivelAtual].borda) : 'border-brand-100 bg-brand-50',
-                )}
-              >
-                <div>
-                  <p className="text-xs font-semibold text-brand-400">Produção na janela</p>
-                  <p className={cx('text-4xl font-black leading-none', nivelAtual ? STATUS_TOKENS[nivelAtual].corTexto : 'text-brand-300')}>
-                    {valor === '' ? '–' : nInt(Number(valor))}
-                  </p>
-                </div>
-                {nivelAtual && <StatusBadge nivel={nivelAtual} />}
-              </div>
+              {/* Operações da janela */}
+              <OperacoesInline
+                atual={atual}
+                extras={extras}
+                setExtras={setExtras}
+                fieldValues={fieldValues}
+                setFieldValues={setFieldValues}
+                activeField={activeField}
+                setActiveField={focusField}
+                operacaoFn={operacao}
+                operacoes={operacoes}
+              />
 
               <div className="mx-auto w-full max-w-xs">
-                <NumericPad value={valor} onChange={setValor} />
+                <NumericPad
+                  value={numpadValue}
+                  onChange={(v) => {
+                    if (!activeField) return
+                    setNumpadValue(v)
+                    setFieldValues((prev) => ({
+                      ...prev,
+                      [activeField.id]: { ...prev[activeField.id], [activeField.campo]: v },
+                    }))
+                  }}
+                />
               </div>
 
               <div className="mt-4 flex gap-2">
@@ -210,6 +235,192 @@ function ModoBtn({
       {icon}
       {children}
     </button>
+  )
+}
+
+function OperacoesInline({
+  atual,
+  extras,
+  setExtras,
+  fieldValues,
+  setFieldValues,
+  activeField,
+  setActiveField,
+  operacaoFn,
+  operacoes,
+}: {
+  atual: Maquina
+  extras: ExtraOp[]
+  setExtras: (ops: ExtraOp[]) => void
+  fieldValues: FieldValues
+  setFieldValues: (v: FieldValues | ((prev: FieldValues) => FieldValues)) => void
+  activeField: ActiveField
+  setActiveField: (f: ActiveField) => void
+  operacaoFn: (id: string) => { nome: string } | undefined
+  operacoes: { id: string; nome: string }[]
+}) {
+  const mainKey = `main-${atual.id}`
+  const mainMeta = fieldValues[mainKey]?.meta ?? String(atual.metaHora)
+  const mainRealizado = fieldValues[mainKey]?.realizado ?? ''
+  const nivelMain = statusJanela(
+    mainRealizado !== '' ? Number(mainRealizado) : null,
+    Number(mainMeta) || atual.metaHora,
+  )
+  const tMain = nivelMain ? STATUS_TOKENS[nivelMain] : null
+
+  const isFocused = (id: string, campo: 'meta' | 'realizado') =>
+    activeField?.id === id && activeField?.campo === campo
+
+  const addExtra = () => {
+    const id = `extra-${Date.now()}`
+    setExtras([...extras, { id, operacaoId: operacoes[0]?.id ?? '' }])
+    setFieldValues((prev) => ({ ...prev, [id]: { meta: '0', realizado: '' } }))
+    setActiveField({ id, campo: 'realizado' })
+  }
+
+  const removeExtra = (id: string) => {
+    setExtras(extras.filter((e) => e.id !== id))
+    if (activeField?.id === id) setActiveField(null)
+  }
+
+  const updateExtraOp = (id: string, operacaoId: string) =>
+    setExtras(extras.map((e) => (e.id === id ? { ...e, operacaoId } : e)))
+
+  /* Botão de campo — toque ativa o NumericPad para aquele campo */
+  const fieldBtn = (
+    id: string,
+    campo: 'meta' | 'realizado',
+    value: string,
+    colorClass: string,
+  ) => {
+    const focused = isFocused(id, campo)
+    return (
+      <button
+        type="button"
+        onClick={() => setActiveField({ id, campo })}
+        className={cx(
+          'rounded-xl border-2 py-2 text-center font-black transition active:scale-95',
+          campo === 'realizado' ? 'w-14 text-lg' : 'w-12 text-sm',
+          focused
+            ? 'border-brand-600 bg-white text-brand-800 shadow ring-2 ring-brand-200'
+            : value && value !== '0'
+              ? cx(colorClass, 'bg-white')
+              : 'border-brand-200 bg-brand-50 text-brand-300',
+        )}
+      >
+        {value && value !== '0' ? value : '–'}
+      </button>
+    )
+  }
+
+  return (
+    <div className="mb-3 space-y-2">
+      {/* Linha principal */}
+      <div
+        className={cx(
+          'flex items-center gap-2 rounded-2xl border-2 px-3 py-3 transition',
+          tMain ? cx(tMain.bg, tMain.borda) : 'border-brand-100 bg-brand-50',
+        )}
+      >
+        <p className="min-w-0 flex-1 truncate text-sm font-bold text-brand-950">
+          {operacaoFn(atual.operacaoId)?.nome ?? '–'}
+        </p>
+        <div className="flex shrink-0 items-center gap-1">
+          <span className="text-[10px] font-semibold text-brand-400">meta</span>
+          {fieldBtn(mainKey, 'meta', mainMeta, 'border-brand-200 text-brand-600')}
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <span className="text-[10px] font-semibold text-brand-400">real.</span>
+          {fieldBtn(
+            mainKey,
+            'realizado',
+            mainRealizado,
+            tMain ? cx(tMain.borda, tMain.corTexto) : 'border-brand-200 text-brand-300',
+          )}
+        </div>
+        {nivelMain ? (
+          <span
+            className={cx(
+              'h-2.5 w-2.5 shrink-0 rounded-full',
+              nivelMain === 'ok' ? 'bg-emerald-500' : 'bg-red-500',
+            )}
+          />
+        ) : (
+          <span className="h-2.5 w-2.5 shrink-0" />
+        )}
+      </div>
+
+      {/* Linhas extras */}
+      {extras.map((e) => {
+        const ev = fieldValues[e.id] ?? { meta: '0', realizado: '' }
+        const nivel =
+          ev.realizado !== ''
+            ? statusJanela(Number(ev.realizado), Number(ev.meta) || 0)
+            : null
+        const t = nivel ? STATUS_TOKENS[nivel] : null
+        return (
+          <div
+            key={e.id}
+            className={cx(
+              'flex items-center gap-2 rounded-2xl border-2 px-3 py-2.5 transition',
+              t ? cx(t.bg, t.borda) : 'border-brand-200 bg-white',
+            )}
+          >
+            <select
+              value={e.operacaoId}
+              onChange={(ev) => updateExtraOp(e.id, ev.target.value)}
+              className="min-w-0 flex-1 rounded-xl bg-transparent text-sm font-semibold text-brand-800 outline-none"
+            >
+              {operacoes.map((op) => (
+                <option key={op.id} value={op.id}>
+                  {op.nome}
+                </option>
+              ))}
+            </select>
+            <div className="flex shrink-0 items-center gap-1">
+              <span className="text-[10px] font-semibold text-brand-400">meta</span>
+              {fieldBtn(e.id, 'meta', ev.meta, 'border-brand-200 text-brand-600')}
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <span className="text-[10px] font-semibold text-brand-400">real.</span>
+              {fieldBtn(
+                e.id,
+                'realizado',
+                ev.realizado,
+                t ? cx(t.borda, t.corTexto) : 'border-brand-200 text-brand-300',
+              )}
+            </div>
+            {nivel ? (
+              <span
+                className={cx(
+                  'h-2.5 w-2.5 shrink-0 rounded-full',
+                  nivel === 'ok' ? 'bg-emerald-500' : 'bg-red-500',
+                )}
+              />
+            ) : (
+              <span className="h-2.5 w-2.5 shrink-0" />
+            )}
+            <button
+              type="button"
+              onClick={() => removeExtra(e.id)}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-brand-300 transition hover:text-red-500 active:scale-90"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )
+      })}
+
+      {/* Adicionar operação */}
+      <button
+        type="button"
+        onClick={addExtra}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-200 py-2.5 text-sm font-bold text-brand-500 transition hover:bg-brand-50 active:scale-[0.98]"
+      >
+        <Plus size={14} />
+        Adicionar operação
+      </button>
+    </div>
   )
 }
 

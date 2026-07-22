@@ -22,7 +22,6 @@ export function HourCell({
     <button
       type="button"
       onClick={onClick}
-      disabled={hora.futura}
       className={cx(
         'relative flex min-w-[72px] flex-col items-center gap-0.5 rounded-xl border-2 px-2 py-2.5 transition active:scale-95',
         hora.futura
@@ -33,7 +32,10 @@ export function HourCell({
     >
       <span className="text-[11px] font-semibold text-brand-400">{label}</span>
       {hora.futura ? (
-        <span className="text-base font-bold text-brand-300">–</span>
+        <>
+          <span className="text-base font-bold text-brand-300">{nInt(hora.meta)}</span>
+          <span className="text-[10px] font-medium leading-none text-brand-200">meta</span>
+        </>
       ) : (
         <>
           <span className={cx('text-base font-extrabold leading-none', t?.corTexto)}>
